@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+<title>Engineering with C</title>
+<meta charset="utf-8" />
+<meta name="description" content="Engineering with C"/>
+<meta name="viewport" content="width=device-width">
+<style>
+body {
+	overflow-y: scroll;
+	font-family: sans-serif;
+	max-width: 640px;
+	padding: 20px;
+	line-height: 1.5;
+	word-wrap: break-word;
+	margin: auto;
+	text-align: justify;
+	text-justify: inter-word;
+	--color-bg: #ffffff;
+	--color-fg: #000000;
+	--color-link: #000099;
+	color: var(--color-fg);
+	background-color: var(--color-bg);
+}
+
+pre {
+	padding: 20px;
+	white-space: pre-wrap;
+	overflow-x: auto;
+	border: 1px dotted gray;
+	display: block;
+	margin: 20px auto;
+	color: #111;
+	background-color: #f0f0f0;
+}
+
+code {
+	font-family: monospace;
+	color: #111;
+	background-color: #f0f0f0;
+}
+
+img {
+	margin: 0px;
+	margin-bottom: 20px;
+	margin-top: 20px;
+	max-width: 100%;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table,th,td {
+	border: 1px solid black;
+}
+
+th,td {
+	padding: 15px;
+	text-align: left;
+}
+
+h1 a, h2 a, h3 a, h4 a, h5 a {
+	text-decoration: none;
+}
+
+h1, h2, h3, h4, h5 {
+	color: var(--color-fg);
+	font-family: sans-serif;
+	font-weight: bold;
+}
+
+h1 {
+	font-size: 130%;
+}
+
+h2 {
+	font-size: 110%;
+}
+
+h3 {
+	font-size: 95%;
+}
+
+h4 {
+	font-size: 90%;
+	font-style: italic;
+}
+
+h5 {
+	font-size: 90%;
+	font-style: italic;
+}
+
+dt code {
+	font-weight: bold;
+}
+
+dd p {
+	margin-top: 0;
+}
+a, a:visited {
+	color: var(--color-link);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a.perma {
+	display: none;
+}
+a.perma:hover {
+	text-decoration: none;
+}
+:hover > a.perma {
+	width: 1.5em;
+	margin-left: -1.5em;
+	display: inline-block;
+}
+
+:target {
+	background-color: rgba(128, 128, 128, 0.2);
+}
+
+.LOC {
+	margin: 2em 0;
+}
+</style>
+</head>
+<body>
+<main>
+<h1 id="engineering-with-c">Engineering with C</h1>
+<p><i>A collection of code snippets to demonstrate ways of working in
+C</i></p>
+<h1 id="table-of-contents">Table of Contents</h1>
+<ul>
+<li><a href="#foreword">FOREWORD</a></li>
+<li><a href="#strings">STRINGS</a>
+<ul>
+<li><a href="#trim-leading-and-trailing-white-space-from-string">Trim
+leading and trailing white-space from string</a></li>
+<li><a href="#trim-all-white-space-from-string-and-truncate-spaces">Trim
+all white-space from string and truncate spaces</a></li>
+</ul></li>
+<li><a href="#arrays">ARRAYS</a>
+<ul>
+<li><a href="#fixed-size-arrays">Fixed-size arrays</a></li>
+<li><a href="#dynamic-array-of-structs">Dynamic array of
+structs</a></li>
+</ul></li>
+</ul>
+<h1 id="foreword">FOREWORD</h1>
+<p>The primary goal of this book is to document methods of doing things
+in C. As a secondary side-effect it also offers reflections on what
+programming in C teaches us about Engineering.</p>
+<p>It has been inspired by <a
+href="https://github.com/dylanaraps/pure-bash-bible">pure-bash-bible</a>
+and <a
+href="https://github.com/dylanaraps/pure-sh-bible">pure-sh-bible</a> in
+terms of the types of code-snippets it includes.</p>
+<p>Examples range from very simple, idiomatic approaches without helper
+libraries, to more sophisticated methods using glib, talloc, cleanup
+attributes and the like.</p>
+<p>A small number of helpers are used to keep the examples brief and to
+the point; for instance <code>xrealloc()</code> and
+<code>die()</code>.</p>
+<p>Many example functions use <code>assert()</code> to set out what type
+of input is expected. In terms of usage, these are only ever intended
+fail if the programmer has done something wrong, not the user. So,
+depending on how you wish to use the code, it may be better to replace
+the <code>assert()</code> with more graceful handling and an error
+message.</p>
+<p>In general, the code is intended to be portable but it has only be
+tested on Linux, so feedback is appreciated if you find issues on other
+Operating Systems.</p>
+<p>If you see something that is wrong, incorrectly described or missing
+I would be grateful for a github issue or pull request.</p>
+<h1 id="strings">STRINGS</h1>
+<h2 id="trim-leading-and-trailing-white-space-from-string">Trim leading
+and trailing white-space from string</h2>
+<p><strong>Example Function:</strong></p>
+<p><a href="src/string-helpers.c">string-helpers.c</a></p>
+<pre><code>void rtrim(char *s)
+{
+    assert(s);
+    size_t len = strlen(s);
+    if (!len) {
+        return;
+    }
+    char *end = s + len - 1;
+    while (end &gt;= s &amp;&amp; isspace(*end)) {
+        end--;
+    }
+    *(end + 1) = &#39;\0&#39;;
+}</code></pre>
+<pre><code>char *string_strip(char *s)
+{
+    assert(s);
+    rtrim(s);
+    while (isspace(*s)) {
+        s++;
+    }
+    return s;
+}</code></pre>
+<h2 id="trim-all-white-space-from-string-and-truncate-spaces">Trim all
+white-space from string and truncate spaces</h2>
+<p><strong>Example Function:</strong></p>
+<p><a href="src/string-helpers.c">string-helpers.c</a></p>
+<pre><code>void remove_spaces(char *s)
+{
+    assert(s);
+    char *d = s;
+    do {
+        while (*d == &#39; &#39;)
+            ++d;
+    } while ((*s++ = *d++));
+}</code></pre>
+<p><strong>Example Usage:</strong></p>
+<p><a href="src/remove-spaces.c">remove-spaces.c</a></p>
+<pre><code>remove-spaces &quot;  foo bar    baz  &quot;
+foobarbaz</code></pre>
+<h1 id="arrays">ARRAYS</h1>
+<h2 id="fixed-size-arrays">Fixed-size arrays</h2>
+<p>In C, a <em>fixed-size</em> array refers to memory that is allocated
+on the stack at compile time and does not change size. An example of a
+use-case in which this is adequate is in a Sudoku solver where the data
+could be stored in a 2D array like <code>int grid[9][9]</code>.</p>
+<h2 id="dynamic-array-of-structs">Dynamic array of structs</h2>
+<p>In this context <em>dynamic</em> means that memory is allocated on
+the heap at runtime, and that the size of the array can be changed.</p>
+<p>Let us start with an array of structs, using pure C with no macros,
+helper libraries, or abstractions.</p>
+<p>Assuming that we have <code>struct item</code>, we need three
+variables: The array itself (<code>*items</code>), the length of the
+array (<code>nr_items</code>) and the size of the heap allocation
+(<code>alloc_items</code>).</p>
+<blockquote>
+<p>These could of course be wrapped up in a struct and passed between
+the functions, but for simplicity we will just declare them as
+file-scope variables. In C this means that they are global variables
+restricted to the scope of a single translation unit. They are sometimes
+also known as internal global variables and are created by applying the
+<em>static</em> keyword to the variable declaration outside of any
+function. As a side note, this is one of the few language supported ways
+in which a level of privacy can be achieved in C.</p>
+</blockquote>
+<p>This approach to arrays works well if you do not want to depend on
+libraries and can keep the usage within one translation unit.</p>
+<p><a href="src/array-dynamic-structs.c">array-dynamic-structs.c</a></p>
+<pre><code>static struct item *items;
+static size_t nr_items, alloc_items;</code></pre>
+<p>Appending an item to the array then becomes:</p>
+<pre><code>static struct item *add_item(void)
+{
+    if (nr_items == alloc_items) {
+        alloc_items = (alloc_items + 16) * 2;
+        items = xrealloc(items, alloc_items * sizeof(struct item));
+    }
+    struct item *item = items + nr_items;
+    memset(item, 0, sizeof(*item));
+    nr_items++;
+    return item;
+}</code></pre>
+<pre><code>static void items_append(const char *name)
+{
+    assert(name);
+    struct item *item = add_item();
+    item-&gt;name = xstrdup(name);
+}</code></pre>
+<p>…which can be used like this:</p>
+<pre><code>items_append(&quot;Foo&quot;);
+items_append(&quot;Bar&quot;);
+items_append(&quot;Baz&quot;);
+qsort(items, nr_items, sizeof(struct item), compare_item_name);</code></pre>
+<p>…where the <code>qsort()</code> callback looks like:</p>
+<pre><code>static int compare_item_name(const void *a, const void *b)
+{
+    const struct item *item_a = a;
+    const struct item *item_b = b;
+    return strcmp0(item_a-&gt;name, item_b-&gt;name);
+}</code></pre>
+<p>You can iterate over the array as follows:</p>
+<pre><code>for (size_t i = 0; i &lt; nr_items; i++) {
+    struct item *item = &amp;items[i];
+    printf(&quot;%s\n&quot;, item-&gt;name);
+}</code></pre>
+<p>…to generate the output:</p>
+<pre><code>Bar
+Baz
+Foo</code></pre>
+</main>
+</body>
+</html>

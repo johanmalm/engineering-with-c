@@ -1,0 +1,11 @@
+*.o
+
+array-dynamic-structs
+generate-readme
+list-singly-linked
+
+remove-spaces
+
+demo-desktop-files
+
+.cache/

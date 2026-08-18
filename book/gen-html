@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+html=index.html
+md=README.md
+
+printf '%s\n' "     GEN   ${html}"
+cat book/template-pre.html > "${html}"
+pandoc --from=markdown+footnotes "${md}" >> "${html}"
+cat book/template-post.html >> "${html}"
