@@ -14,6 +14,8 @@ LDFLAGS += `pkg-config --libs glib-2.0`
 PROGS = \
 	list-singly-linked \
 	remove-spaces \
+	array-fixed-size-strings \
+	array-fixed-size-structs \
 	array-dynamic-structs \
 	array-dynamic-strings-glib \
 	generate-readme

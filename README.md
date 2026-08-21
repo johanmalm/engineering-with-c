@@ -124,6 +124,51 @@ compile time and does not change size. An example of a use-case in which this is
 adequate is in a Sudoku solver where the data could be stored in a 2D array like
 `int grid[9][9]`.
 
+### Array-size
+
+When iterating over a fixed-size array, it is important to know its size. For
+this purpose an `ARRAY_SIZE` macros is commonly used:
+
+[macros.h](src/macros.h)
+
+```
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+```
+
+### Fixed-size array of strings
+
+[array-fixed-size-strings.c](src/array-fixed-size-strings.c)
+
+```
+const char * const words[] = { "Foo", "Bar", "Baz" };
+
+for (size_t i = 0; i < ARRAY_SIZE(words); i++) {
+	printf("%s\n", words[i]);
+}
+```
+
+### Fixed-size array of structs
+
+[array-fixed-size-structs.c](src/array-fixed-size-structs.c)
+
+```
+const struct key_combos {
+	const char *binding;
+	const char *action;
+} key_combos[] = { {
+		.binding = "A-Tab",
+		.action = "NextWindow",
+	}, {
+		.binding = "A-S-Tab",
+		.action = "PreviousWindow"
+	},
+};
+
+for (size_t i = 0; i < ARRAY_SIZE(key_combos); i++) {
+	printf("%s: %s\n", key_combos[i].binding, key_combos[i].action);
+}
+```
+
 ## Dynamic arrays
 
 ### Dynamic array of structs

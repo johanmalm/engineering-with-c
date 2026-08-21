@@ -90,6 +90,27 @@ compile time and does not change size. An example of a use-case in which this is
 adequate is in a Sudoku solver where the data could be stored in a 2D array like
 `int grid[9][9]`.
 
+### Array-size
+
+When iterating over a fixed-size array, it is important to know its size. For
+this purpose an `ARRAY_SIZE` macros is commonly used:
+
+[macros.h](src/macros.h)
+
+@code:src/macros.h:0
+
+### Fixed-size array of strings
+
+[array-fixed-size-strings.c](src/array-fixed-size-strings.c)
+
+@code:src/array-fixed-size-strings.c:0
+
+### Fixed-size array of structs
+
+[array-fixed-size-structs.c](src/array-fixed-size-structs.c)
+
+@code:src/array-fixed-size-structs.c:0
+
 ## Dynamic arrays
 
 ### Dynamic array of structs

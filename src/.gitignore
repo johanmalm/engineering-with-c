@@ -1,5 +1,7 @@
 *.o
 
+array-fixed-size-strings
+array-fixed-size-structs
 array-dynamic-structs
 array-dynamic-strings-glib
 generate-readme
