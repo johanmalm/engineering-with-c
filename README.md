@@ -108,6 +108,15 @@ foobarbaz
 
 # ARRAYS
 
+## Introduction
+
+There are two aggregate data types in C, whereby multiple elements can be
+combined to form a whole - arrays and structures. Arrays hold multiple items of
+the exact same data type, whereas structures group variables of different (or
+same) data types together under one name.
+
+In this section we are going to look at arrays.
+
 ## Fixed-size arrays
 
 In C, a _fixed-size_ array refers to memory that is allocated on the stack at
