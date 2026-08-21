@@ -50,11 +50,14 @@ void remove_spaces(char *s)
 /* NULL-safe string comparison functions */
 int strcmp0(const char *a, const char *b)
 {
+	if (!a && !b) {
+		return 0;
+	}
 	if (!a) {
-		return -(a != b);
+		return 1;
 	}
 	if (!b) {
-		return a != b;
+		return -1;
 	}
 	return strcmp(a, b);
 }
