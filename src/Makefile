@@ -15,6 +15,7 @@ PROGS = \
 	list-singly-linked \
 	remove-spaces \
 	array-dynamic-structs \
+	array-dynamic-strings-glib \
 	generate-readme
 
 HELPER = \

@@ -147,8 +147,7 @@ all white-space from string and truncate spaces</a></li>
 <li><a href="#arrays">ARRAYS</a>
 <ul>
 <li><a href="#fixed-size-arrays">Fixed-size arrays</a></li>
-<li><a href="#dynamic-array-of-structs">Dynamic array of
-structs</a></li>
+<li><a href="#dynamic-arrays">Dynamic arrays</a></li>
 </ul></li>
 </ul>
 <h1 id="foreword">FOREWORD</h1>
@@ -233,7 +232,8 @@ variables of different (or same) data types together under one name.</p>
 on the stack at compile time and does not change size. An example of a
 use-case in which this is adequate is in a Sudoku solver where the data
 could be stored in a 2D array like <code>int grid[9][9]</code>.</p>
-<h2 id="dynamic-array-of-structs">Dynamic array of structs</h2>
+<h2 id="dynamic-arrays">Dynamic arrays</h2>
+<h3 id="dynamic-array-of-structs">Dynamic array of structs</h3>
 <p>In this context <em>dynamic</em> means that memory is allocated on
 the heap at runtime, and that the size of the array can be changed.</p>
 <p>Let us start with an array of structs, using pure C with no macros,
@@ -296,6 +296,33 @@ qsort(items, nr_items, sizeof(struct item), compare_item_name);</code></pre>
 <pre><code>Bar
 Baz
 Foo</code></pre>
+<h3 id="dynamic-array-of-strings-using-glib">Dynamic array of strings
+using glib</h3>
+<p>Here is a simpler example without the sort function and just adding
+strings rather than strings within structs:</p>
+<p><a
+href="src/array-dynamic-strings-glib.c">array-dynamic-strings-glib.c</a></p>
+<pre><code>g_autoptr(GPtrArray) items = g_ptr_array_new_with_free_func(g_free);
+
+g_ptr_array_add(items, g_strdup(&quot;Foo&quot;));
+g_ptr_array_add(items, g_strdup(&quot;Bar&quot;));
+g_ptr_array_add(items, g_strdup(&quot;Baz&quot;));
+
+for (guint i = 0; i &lt; items-&gt;len; ++i) {
+    g_print(&quot;%s\n&quot;, (gchar *)g_ptr_array_index(items, i));
+}</code></pre>
+<p>…to generate the output:</p>
+<pre><code>Foo
+Bar
+Baz</code></pre>
+<p>In the above example <code>g_strdup()</code> was used to provide a
+more realistic real-life example of a dynamic array, because if you knew
+all the strings at build time you would probably just a fixed-size
+array.</p>
+<p>Automatic cleanup is used through <code>g_autoptr</code> which
+handles freeing the <code>GPtrArray</code> container when exiting the
+scope. <code>g_free</code> is passed to free dynamically allocated
+strings inside.</p>
 </main>
 </body>
 </html>

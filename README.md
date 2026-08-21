@@ -10,7 +10,7 @@
     * [Trim all white-space from string and truncate spaces](#trim-all-white-space-from-string-and-truncate-spaces)
 * [ARRAYS](#arrays)
     * [Fixed-size arrays](#fixed-size-arrays)
-    * [Dynamic array of structs](#dynamic-array-of-structs)
+    * [Dynamic arrays](#dynamic-arrays)
 
 # FOREWORD
 
@@ -124,7 +124,9 @@ compile time and does not change size. An example of a use-case in which this is
 adequate is in a Sudoku solver where the data could be stored in a 2D array like
 `int grid[9][9]`.
 
-## Dynamic array of structs
+## Dynamic arrays
+
+### Dynamic array of structs
 
 In this context _dynamic_ means that memory is allocated on the heap at runtime,
 and that the size of the array can be changed.
@@ -215,4 +217,39 @@ Bar
 Baz
 Foo
 ```
+
+### Dynamic array of strings using glib
+
+Here is a simpler example without the sort function and just adding strings
+rather than strings within structs:
+
+[array-dynamic-strings-glib.c](src/array-dynamic-strings-glib.c)
+
+```
+g_autoptr(GPtrArray) items = g_ptr_array_new_with_free_func(g_free);
+
+g_ptr_array_add(items, g_strdup("Foo"));
+g_ptr_array_add(items, g_strdup("Bar"));
+g_ptr_array_add(items, g_strdup("Baz"));
+
+for (guint i = 0; i < items->len; ++i) {
+	g_print("%s\n", (gchar *)g_ptr_array_index(items, i));
+}
+```
+
+...to generate the output:
+
+```
+Foo
+Bar
+Baz
+```
+
+In the above example `g_strdup()` was used to provide a more realistic real-life
+example of a dynamic array, because if you knew all the strings at build time
+you would probably just a fixed-size array.
+
+Automatic cleanup is used through `g_autoptr` which handles freeing the
+`GPtrArray` container when exiting the scope. `g_free` is passed to free
+dynamically allocated strings inside.
 

@@ -1,6 +1,7 @@
 *.o
 
 array-dynamic-structs
+array-dynamic-strings-glib
 generate-readme
 list-singly-linked
 
