@@ -20,7 +20,7 @@ static size_t nr_items, alloc_items;
 static struct item *add_item(void)
 {
 	if (nr_items == alloc_items) {
-		alloc_items = (alloc_items + 16) * 2;
+		alloc_items = (alloc_items + 16) * 3 / 2;
 		items = xrealloc(items, alloc_items * sizeof(struct item));
 	}
 	struct item *item = items + nr_items;

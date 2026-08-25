@@ -141,39 +141,46 @@ C</i></p>
 <ul>
 <li><a href="#trim-leading-and-trailing-white-space-from-string">Trim
 leading and trailing white-space from string</a></li>
-<li><a href="#trim-all-white-space-from-string-and-truncate-spaces">Trim
-all white-space from string and truncate spaces</a></li>
+<li><a href="#truncate-spaces-in-string">Truncate spaces in
+string</a></li>
 </ul></li>
 <li><a href="#arrays">ARRAYS</a>
 <ul>
 <li><a href="#fixed-size-arrays">Fixed-size arrays</a></li>
 <li><a href="#dynamic-arrays">Dynamic arrays</a></li>
 </ul></li>
+<li><a href="#lists">LISTS</a>
+<ul>
+<li><a href="#singly-linked-list">Singly linked list</a></li>
+<li><a href="#doubly-linked-list">Doubly linked list</a></li>
+<li><a href="#sort-a-list">Sort a list</a></li>
+<li><a href="#reverse-a-list">Reverse a list</a></li>
+</ul></li>
 </ul>
 <h1 id="foreword">FOREWORD</h1>
-<p>The primary goal of this book is to document methods of doing things
-in C. As a secondary side-effect it also offers reflections on what
-programming in C teaches us about Engineering.</p>
+<p>The primary goal of this book is to document ways of doing things in
+C. As a secondary benefit it also offers reflections on what programming
+in C teaches us about Engineering.</p>
 <p>It has been inspired by <a
 href="https://github.com/dylanaraps/pure-bash-bible">pure-bash-bible</a>
 and <a
 href="https://github.com/dylanaraps/pure-sh-bible">pure-sh-bible</a> in
-terms of the types of code-snippets it includes.</p>
+terms of the type of code-snippets it includes.</p>
 <p>Examples range from very simple, idiomatic approaches without helper
-libraries, to more sophisticated methods using glib, talloc, cleanup
-attributes and the like.</p>
+libraries or abstractions, to more sophisticated methods using glib,
+talloc, cleanup attributes and the like.</p>
 <p>A small number of helpers are used to keep the examples brief and to
 the point; for instance <code>xrealloc()</code> and
 <code>die()</code>.</p>
-<p>Many example functions use <code>assert()</code> to set out what type
-of input is expected. In terms of usage, these are only ever intended
-fail if the programmer has done something wrong, not the user. So,
-depending on how you wish to use the code, it may be better to replace
-the <code>assert()</code> with more graceful handling and an error
-message.</p>
-<p>In general, the code is intended to be portable but it has only be
-tested on Linux, so feedback is appreciated if you find issues on other
-Operating Systems.</p>
+<p>Many example functions use <code>assert()</code> to document their
+expectations about input. These assertions are only intended to fail if
+the programmer has made a mistake, rather than as a means of handling
+invalid user input. Depending on how you intend to use the code, it may
+therefore be better to replace the <code>assert()</code> with more
+graceful error handling and an appropriate error message.</p>
+<p>In general, the code is intended to be portable but it has only been
+tested on Linux, so feedback is appreciated if you find any issues on
+other Operating Systems.</p>
 <p>If you see something that is wrong, incorrectly described or missing
 I would be grateful for a github issue or pull request.</p>
 <h1 id="strings">STRINGS</h1>
@@ -189,7 +196,7 @@ and trailing white-space from string</h2>
         return;
     }
     char *end = s + len - 1;
-    while (end &gt;= s &amp;&amp; isspace(*end)) {
+    while (end &gt;= s &amp;&amp; isspace((unsigned char)*end)) {
         end--;
     }
     *(end + 1) = &#39;\0&#39;;
@@ -198,46 +205,48 @@ and trailing white-space from string</h2>
 {
     assert(s);
     rtrim(s);
-    while (isspace(*s)) {
+    while (isspace((unsigned char)*s)) {
         s++;
     }
     return s;
 }</code></pre>
-<h2 id="trim-all-white-space-from-string-and-truncate-spaces">Trim all
-white-space from string and truncate spaces</h2>
+<h2 id="truncate-spaces-in-string">Truncate spaces in string</h2>
 <p><strong>Example Function:</strong></p>
 <p><a href="src/string-helpers.c">string-helpers.c</a></p>
-<pre><code>void remove_spaces(char *s)
+<pre><code>void truncate_spaces(char *s)
 {
     assert(s);
     char *d = s;
     do {
-        while (*d == &#39; &#39;)
+        while (*d == &#39; &#39; &amp;&amp; *(d + 1) == &#39; &#39;)
             ++d;
     } while ((*s++ = *d++));
 }</code></pre>
 <p><strong>Example Usage:</strong></p>
-<p><a href="src/remove-spaces.c">remove-spaces.c</a></p>
-<pre><code>remove-spaces &quot;  foo bar    baz  &quot;
-foobarbaz</code></pre>
+<p><a href="src/truncate-spaces.c">truncate-spaces.c</a></p>
+<pre><code>truncate-spaces &quot;foo       bar    baz&quot;
+foo bar baz</code></pre>
 <h1 id="arrays">ARRAYS</h1>
 <h2 id="introduction">Introduction</h2>
-<p>There are two aggregate data types in C, whereby multiple elements
-can be combined to form a whole - arrays and structures. Arrays hold
-multiple items of the exact same data type, whereas structures group
-variables of different (or same) data types together under one name.</p>
-<p>In this section we are going to look at arrays.</p>
+<p>C provides two fundamental aggregate types: arrays, which contain
+multiple elements of the same type, and structures, which group multiple
+members under a single name.</p>
 <h2 id="fixed-size-arrays">Fixed-size arrays</h2>
-<p>In C, a <em>fixed-size</em> array refers to memory that is allocated
-on the stack at compile time and does not change size. An example of a
-use-case in which this is adequate is in a Sudoku solver where the data
-could be stored in a 2D array like <code>int grid[9][9]</code>.</p>
+<p>In C, a <em>fixed-size</em> array has a number of elements that is
+fixed when the array is defined. Its storage may have automatic, static
+or allocated duration. An example of a use-case in which this is
+adequate is in a Sudoku solver where the data could be stored in a 2D
+array like <code>int grid[9][9]</code>.</p>
 <h3 id="array-size">Array-size</h3>
 <p>When iterating over a fixed-size array, it is important to know its
-size. For this purpose an <code>ARRAY_SIZE</code> macros is commonly
+size. For this purpose, an <code>ARRAY_SIZE</code> macros is commonly
 used:</p>
 <p><a href="src/macros.h">macros.h</a></p>
 <pre><code>#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))</code></pre>
+<blockquote>
+<p>Note: This works only when <code>arr</code> is an actual array, not
+when it is a pointer.</p>
+</blockquote>
 <h3 id="fixed-size-array-of-strings">Fixed-size array of strings</h3>
 <p><a
 href="src/array-fixed-size-strings.c">array-fixed-size-strings.c</a></p>
@@ -266,26 +275,22 @@ for (size_t i = 0; i &lt; ARRAY_SIZE(key_combos); i++) {
 }</code></pre>
 <h2 id="dynamic-arrays">Dynamic arrays</h2>
 <h3 id="dynamic-array-of-structs">Dynamic array of structs</h3>
-<p>In this context <em>dynamic</em> means that memory is allocated on
-the heap at runtime, and that the size of the array can be changed.</p>
-<p>Let us start with an array of structs, using pure C with no macros,
+<p>Here, <em>dynamic</em> means that the array’s storage is allocated at
+runtime and can be resized as the number of elements changes.</p>
+<p>Let’s start with an array of structures, using pure C with no macros,
 helper libraries, or abstractions.</p>
 <p>Assuming that we have <code>struct item</code>, we need three
 variables: The array itself (<code>*items</code>), the length of the
 array (<code>nr_items</code>) and the size of the heap allocation
-(<code>alloc_items</code>).</p>
-<blockquote>
-<p>These could of course be wrapped up in a struct and passed between
-the functions, but for simplicity we will just declare them as
-file-scope variables. In C this means that they are global variables
-restricted to the scope of a single translation unit. They are sometimes
-also known as internal global variables and are created by applying the
-<em>static</em> keyword to the variable declaration outside of any
-function. As a side note, this is one of the few language supported ways
-in which a level of privacy can be achieved in C.</p>
-</blockquote>
-<p>This approach to arrays works well if you do not want to depend on
-libraries and can keep the usage within one translation unit.</p>
+(<code>alloc_items</code>). These could of course be wrapped up in a
+struct and passed between the functions, but for simplicity we just
+declare them as file-scope variables. In C this means that they are
+global variables restricted to the scope of a single translation unit.
+They are sometimes also known as internal global variables and are
+created by applying the <em>static</em> keyword to the variable
+declaration outside of any function. As a side note, this is one of the
+few language supported ways in which a level of privacy can be achieved
+in C.</p>
 <p><a href="src/array-dynamic-structs.c">array-dynamic-structs.c</a></p>
 <pre><code>static struct item *items;
 static size_t nr_items, alloc_items;</code></pre>
@@ -293,7 +298,7 @@ static size_t nr_items, alloc_items;</code></pre>
 <pre><code>static struct item *add_item(void)
 {
     if (nr_items == alloc_items) {
-        alloc_items = (alloc_items + 16) * 2;
+        alloc_items = (alloc_items + 16) * 3 / 2;
         items = xrealloc(items, alloc_items * sizeof(struct item));
     }
     struct item *item = items + nr_items;
@@ -328,6 +333,8 @@ qsort(items, nr_items, sizeof(struct item), compare_item_name);</code></pre>
 <pre><code>Bar
 Baz
 Foo</code></pre>
+<p>This approach to arrays works well if you do not want to depend on
+libraries and can keep the usage within one translation unit.</p>
 <h3 id="dynamic-array-of-strings-using-glib">Dynamic array of strings
 using glib</h3>
 <p>Here is a simpler example without the sort function and just adding
@@ -355,6 +362,158 @@ array.</p>
 handles freeing the <code>GPtrArray</code> container when exiting the
 scope. <code>g_free</code> is passed to free dynamically allocated
 strings inside.</p>
+<h1 id="lists">LISTS</h1>
+<h2 id="singly-linked-list">Singly linked list</h2>
+<p>Singly linked lists are conceptually simple and are commonly taught
+as an introductory data structure.</p>
+<p><a href="src/list-singly-linked.c">list-singly-linked.c</a></p>
+<pre><code>struct item {
+    int value;
+    struct item *next;
+};</code></pre>
+<p>Elements can then be added with something like:</p>
+<pre><code>static void list_add(struct item **head, int value)
+{
+    struct item *item = xcalloc(1, sizeof(*item));
+    item-&gt;value = value;
+    item-&gt;next = *head;
+    *head = item;
+}</code></pre>
+<pre><code>struct item *items = NULL;
+
+const int ints[] = { 4, 3, 2, 1, 0 };
+for (size_t i = 0; i &lt; ARRAY_SIZE(ints); ++i) {
+    list_add(&amp;items, ints[i]);
+}</code></pre>
+<p>…and finally we can iterate over the list with a simple for-loop:</p>
+<pre><code>for (struct item *p = items; p; p = p-&gt;next) {
+    printf(&quot;%d\n&quot;, p-&gt;value);
+}</code></pre>
+<p>We will not cover this type of list further here because it does not
+enable generic code, so each implementation has to re-invent the wheel.
+There are some well-known projects using them if you want to study this
+approach:</p>
+<ul>
+<li>git <a
+href="https://github.com/git/git/blob/593c42fe075be0c8cd5239b3a2f21c610cbc9798/commit.h#L17-L20">commit.h</a></li>
+<li>gcc <a
+href="https://github.com/gcc-mirror/gcc/blob/c3743bccd47712301ade2bc8d85fd3477bfce9ca/include/obstack.h#L156-L161">obstack.h</a></li>
+</ul>
+<h2 id="doubly-linked-list">Doubly linked list</h2>
+<p>By embedding a <code>struct list_head</code> (or similar) in another
+structure, the same list implementation can be used to link objects of
+any type.</p>
+<pre><code>struct list_head {
+    struct list_head *next, *prev;
+};</code></pre>
+<p>This type of implementation avoids ad hoc linked lists and duplicated
+definitions every time a list is needed. Also, the circular
+doubly-linked setup has performance benefits in many situation.</p>
+<p>Many battle-tested projects and libraries use this type of
+implementation:</p>
+<ul>
+<li>Linux Kernel (<a
+href="https://elixir.bootlin.com/linux/v7.2/source/include/linux/list.h">include/linux/list.h</a>)</li>
+<li>Wayland (<a
+href="https://gitlab.freedesktop.org/wayland/wayland/-/blob/main/src/wayland-util.h?ref_type=heads#L247">wayland-util.h</a>)</li>
+<li>Apache Portable Runtime (<a
+href="https://github.com/apache/apr/blob/trunk/include/apr_ring.h">apr_ring.h</a>)</li>
+<li>Qemu (<a
+href="https://github.com/qemu/qemu/blob/master/include/qemu/queue.h">queue.h</a>)</li>
+<li>Systemd (<a
+href="https://github.com/systemd/systemd/blob/main/src/basic/list.h">basic/list.h</a>)</li>
+<li>ccan (<a
+href="https://github.com/rustyrussell/ccan/blob/master/ccan/list/list.h">ccan/list/list.h</a>)</li>
+<li>Git (<a
+href="https://github.com/git/git/blob/master/list.h">git/list.h</a>)</li>
+</ul>
+<p>The Linux kernel implementation will be used in this book to
+demonstrate how to get things done.</p>
+<p>Let’s start by looking at a simple example. First, the list needs to
+be defined and initialised (<code>items</code> in this case).</p>
+<p><a href="src/list-sort.c">list-sort.c</a></p>
+<pre><code>LIST_HEAD(items);</code></pre>
+<p>Then the structure of interest - the one to be added to the list -
+needs to be defined; and it needs to contain a
+<code>struct list_head</code> member.</p>
+<pre><code>struct item {
+    int value;
+    struct list_head link;
+};</code></pre>
+<p>Then items can be added:</p>
+<pre><code>static void add_item(struct list_head *items, int value)
+{
+    struct item *item = xcalloc(1, sizeof(*item));
+    item-&gt;value = value;
+    list_add_tail(&amp;item-&gt;link, items);
+}</code></pre>
+<pre><code>const int ints[] = { 4, 2, 9, 1, 7, 0, 5, 3, 8, 6 };
+for (size_t i = 0; i &lt; ARRAY_SIZE(ints); ++i) {
+    add_item(&amp;items, ints[i]);
+}</code></pre>
+<p>…and iterated over:</p>
+<pre><code>struct item *item;
+list_for_each_entry(item, &amp;items, link) {
+    printf(&quot;%d&quot;, item-&gt;value);
+}</code></pre>
+<blockquote>
+<p>NOTE 1: The <a
+href="https://elixir.bootlin.com/linux/v7.2/source/include/linux/types.h#L204-L206">list_head</a>
+structure should not itself hold any other data, but should be embedded
+in the structure to be contained in a list.</p>
+</blockquote>
+<blockquote>
+<p>NOTE 2: A <a
+href="https://elixir.bootlin.com/linux/v7.2/source/include/linux/container_of.h#L19">container_of</a>
+macro is used to obtain the containing structure from a pointer to its
+<code>list_head</code> member. This book does not try to describe how
+this works, but is just mentioning it for completeness.</p>
+</blockquote>
+<blockquote>
+<p>NOTE 3: As opposed to the textbook singly list mental model, it is
+worth noting that the actual head of the list tends to be a standalone
+<code>list_head</code> structure, rather than one embedded within a
+structure type of interest.</p>
+</blockquote>
+<h2 id="sort-a-list">Sort a list</h2>
+<p>The C language has no builtin support for sorting lists, but the
+Linux kernel contains a sophisticated <a
+href="src/list_sort.c">merge-sort</a> implementation.</p>
+<p>Building on the example in the previous section, the list can be
+sorted with:</p>
+<p><a href="src/list-sort.c">list-sort.c</a></p>
+<pre><code>list_sort(NULL, &amp;items, compare_ints);</code></pre>
+<pre><code>static int compare_ints(void *priv, const struct list_head *a, const struct list_head *b)
+{
+    (void)priv;
+    struct item *item_a = container_of(a, struct item, link);
+    struct item *item_b = container_of(b, struct item, link);
+    if (item_a-&gt;value &lt; item_b-&gt;value) {
+        return -1;
+    }
+    if (item_a-&gt;value &gt; item_b-&gt;value) {
+        return 1;
+    }
+    return 0;
+}</code></pre>
+<p>…to generate the output:</p>
+<pre><code>0123456789</code></pre>
+<h2 id="reverse-a-list">Reverse a list</h2>
+<p>The list from the previous example can be reversed in place:</p>
+<p><a href="src/list-reverse.c">list-reverse.c</a></p>
+<pre><code>static void list_reverse(struct list_head *head)
+{
+    struct list_head *curr = head;
+    do {
+        struct list_head *tmp = curr-&gt;next;
+        curr-&gt;next = curr-&gt;prev;
+        curr-&gt;prev = tmp;
+        curr = curr-&gt;prev;
+    } while (curr != head);
+}</code></pre>
+<pre><code>list_reverse(&amp;items);</code></pre>
+<p>…to generate the output:</p>
+<pre><code>9876543210</code></pre>
 </main>
 </body>
 </html>

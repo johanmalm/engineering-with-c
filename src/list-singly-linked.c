@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: MIT
 #include <stdio.h>
 #include <stdlib.h>
+#include "macros.h"
 #include "util.h"
 
+//! [0]
 struct item {
 	int value;
 	struct item *next;
 };
+//! [0]
 
-static void list_insert_tail(struct item **head, int value)
+//! [1]
+static void list_add(struct item **head, int value)
 {
 	struct item *item = xcalloc(1, sizeof(*item));
 	item->value = value;
 	item->next = *head;
 	*head = item;
 }
+//! [1]
 
 static void list_remove_item_by_value(struct item **head, int to_remove)
 {
@@ -44,18 +49,23 @@ static void list_destroy(struct item **head)
 
 int main(int argc, char **argv)
 {
-	struct item *head = NULL;
-	list_insert_tail(&head, 4);
-	list_insert_tail(&head, 3);
-	list_insert_tail(&head, 2);
-	list_insert_tail(&head, 1);
+//! [2]
+	struct item *items = NULL;
 
-	list_remove_item_by_value(&head, 2);
+	const int ints[] = { 4, 3, 2, 1, 0 };
+	for (size_t i = 0; i < ARRAY_SIZE(ints); ++i) {
+		list_add(&items, ints[i]);
+	}
+//! [2]
 
-	for (struct item *p = head; p; p = p->next) {
+	list_remove_item_by_value(&items, 2);
+
+//! [3]
+	for (struct item *p = items; p; p = p->next) {
 		printf("%d\n", p->value);
 	}
+//! [3]
 
-	list_destroy(&head);
+	list_destroy(&items);
 }
 

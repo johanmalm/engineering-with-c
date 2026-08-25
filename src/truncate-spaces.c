@@ -9,6 +9,6 @@ int main(int argc, char **argv)
 		printf("usage: %s <string>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
-	remove_spaces(argv[1]);
-	printf("%s\n", argv[1]);
+	truncate_spaces(argv[1]);
+	printf("%s\n", string_strip(argv[1]));
 }

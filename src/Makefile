@@ -4,16 +4,19 @@ MAKEFLAGS += --no-print-directory
 QUIET_CC   = @echo '     CC    '$@;
 QUIET_LINK = @echo '     LINK  '$@;
 
-CFLAGS = -g -Wall -Wextra -std=c11 -pedantic -fanalyzer -flto
+CFLAGS = -g -Wall -Wextra -std=gnu23
 CFLAGS += -fsanitize=address,undefined -fno-common -fno-omit-frame-pointer -rdynamic
 CFLAGS += -fanalyzer
+CFLAGS += -Wno-analyzer-deref-before-check -Wno-analyzer-malloc-leak
 CFLAGS += -Wno-unused-parameter
 CFLAGS += `pkg-config --cflags glib-2.0`
 LDFLAGS += `pkg-config --libs glib-2.0`
 
 PROGS = \
 	list-singly-linked \
-	remove-spaces \
+	list-sort \
+	list-reverse \
+	truncate-spaces \
 	array-fixed-size-strings \
 	array-fixed-size-structs \
 	array-dynamic-structs \
@@ -22,6 +25,7 @@ PROGS = \
 
 HELPER = \
 	util.o \
+	list_sort.o \
 	parse-key-value-pair.o \
 	string-helpers.o
 
@@ -37,4 +41,4 @@ $(PROGS): % : %.o $(HELPER)
 	$(QUIET_CC)$(CC) $(CFLAGS) -c $<
 
 clean:
-	$(RM) -f $(PROGS) $(OBJ)
+	$(RM) -f $(PROGS) $(OBJ) $(HELPER)

@@ -7,35 +7,41 @@
 * [FOREWORD](#foreword)
 * [STRINGS](#strings)
     * [Trim leading and trailing white-space from string](#trim-leading-and-trailing-white-space-from-string)
-    * [Trim all white-space from string and truncate spaces](#trim-all-white-space-from-string-and-truncate-spaces)
+    * [Truncate spaces in string](#truncate-spaces-in-string)
 * [ARRAYS](#arrays)
     * [Fixed-size arrays](#fixed-size-arrays)
     * [Dynamic arrays](#dynamic-arrays)
+* [LISTS](#lists)
+    * [Singly linked list](#singly-linked-list)
+    * [Doubly linked list](#doubly-linked-list)
+    * [Sort a list](#sort-a-list)
+    * [Reverse a list](#reverse-a-list)
 
 # FOREWORD
 
-The primary goal of this book is to document methods of doing things in C. As a
-secondary side-effect it also offers reflections on what programming in C
-teaches us about Engineering.
+The primary goal of this book is to document ways of doing things in C. As a
+secondary benefit it also offers reflections on what programming in C teaches us
+about Engineering.
 
 It has been inspired by [pure-bash-bible] and [pure-sh-bible] in terms of the
-types of code-snippets it includes.
+type of code-snippets it includes.
 
-Examples range from very simple, idiomatic approaches without helper libraries,
-to more sophisticated methods using glib, talloc, cleanup attributes and the
-like.
+Examples range from very simple, idiomatic approaches without helper libraries
+or abstractions, to more sophisticated methods using glib, talloc, cleanup
+attributes and the like.
 
 A small number of helpers are used to keep the examples brief and to the point;
 for instance `xrealloc()` and `die()`.
 
-Many example functions use `assert()` to set out what type of input is expected.
-In terms of usage, these are only ever intended fail if the programmer has done
-something wrong, not the user. So, depending on how you wish to use the code, it
-may be better to replace the `assert()` with more graceful handling and an error
-message.
+Many example functions use `assert()` to document their expectations about
+input.  These assertions are only intended to fail if the programmer has made a
+mistake, rather than as a means of handling invalid user input. Depending on how
+you intend to use the code, it may therefore be better to replace the `assert()`
+with more graceful error handling and an appropriate error message.
 
-In general, the code is intended to be portable but it has only be tested on
-Linux, so feedback is appreciated if you find issues on other Operating Systems.
+In general, the code is intended to be portable but it has only been tested on
+Linux, so feedback is appreciated if you find any issues on other Operating
+Systems.
 
 If you see something that is wrong, incorrectly described or missing I would be
 grateful for a github issue or pull request.
@@ -60,7 +66,7 @@ void rtrim(char *s)
 		return;
 	}
 	char *end = s + len - 1;
-	while (end >= s && isspace(*end)) {
+	while (end >= s && isspace((unsigned char)*end)) {
 		end--;
 	}
 	*(end + 1) = '\0';
@@ -72,26 +78,26 @@ char *string_strip(char *s)
 {
 	assert(s);
 	rtrim(s);
-	while (isspace(*s)) {
+	while (isspace((unsigned char)*s)) {
 		s++;
 	}
 	return s;
 }
 ```
 
-## Trim all white-space from string and truncate spaces
+## Truncate spaces in string
 
 **Example Function:**
 
 [string-helpers.c](src/string-helpers.c)
 
 ```
-void remove_spaces(char *s)
+void truncate_spaces(char *s)
 {
 	assert(s);
 	char *d = s;
 	do {
-		while (*d == ' ')
+		while (*d == ' ' && *(d + 1) == ' ')
 			++d;
 	} while ((*s++ = *d++));
 }
@@ -99,41 +105,40 @@ void remove_spaces(char *s)
 
 **Example Usage:**
 
-[remove-spaces.c](src/remove-spaces.c)
+[truncate-spaces.c](src/truncate-spaces.c)
 
 ```
-remove-spaces "  foo bar    baz  "
-foobarbaz
+truncate-spaces "foo       bar    baz"
+foo bar baz
 ```
 
 # ARRAYS
 
 ## Introduction
 
-There are two aggregate data types in C, whereby multiple elements can be
-combined to form a whole - arrays and structures. Arrays hold multiple items of
-the exact same data type, whereas structures group variables of different (or
-same) data types together under one name.
-
-In this section we are going to look at arrays.
+C provides two fundamental aggregate types: arrays, which contain multiple
+elements of the same type, and structures, which group multiple members under a
+single name.
 
 ## Fixed-size arrays
 
-In C, a _fixed-size_ array refers to memory that is allocated on the stack at
-compile time and does not change size. An example of a use-case in which this is
-adequate is in a Sudoku solver where the data could be stored in a 2D array like
-`int grid[9][9]`.
+In C, a _fixed-size_ array has a number of elements that is fixed when the array
+is defined. Its storage may have automatic, static or allocated duration. An
+example of a use-case in which this is adequate is in a Sudoku solver where the
+data could be stored in a 2D array like `int grid[9][9]`.
 
 ### Array-size
 
 When iterating over a fixed-size array, it is important to know its size. For
-this purpose an `ARRAY_SIZE` macros is commonly used:
+this purpose, an `ARRAY_SIZE` macros is commonly used:
 
 [macros.h](src/macros.h)
 
 ```
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 ```
+
+> Note: This works only when `arr` is an actual array, not when it is a pointer.
 
 ### Fixed-size array of strings
 
@@ -173,26 +178,22 @@ for (size_t i = 0; i < ARRAY_SIZE(key_combos); i++) {
 
 ### Dynamic array of structs
 
-In this context _dynamic_ means that memory is allocated on the heap at runtime,
-and that the size of the array can be changed.
+Here, _dynamic_ means that the array's storage is allocated at runtime and can
+be resized as the number of elements changes.
 
-Let us start with an array of structs, using pure C with no macros, helper
+Let's start with an array of structures, using pure C with no macros, helper
 libraries, or abstractions.
 
 Assuming that we have `struct item`, we need three variables: The array itself
 (`*items`), the length of the array (`nr_items`) and the size of the heap
-allocation (`alloc_items`).
-
-> These could of course be wrapped up in a struct and passed between the
-functions, but for simplicity we will just declare them as file-scope variables.
-In C this means that they are global variables restricted to the scope of a
-single translation unit. They are sometimes also known as internal global
-variables and are created by applying the _static_ keyword to the variable
-declaration outside of any function. As a side note, this is one of the few
-language supported ways in which a level of privacy can be achieved in C.
-
-This approach to arrays works well if you do not want to depend on libraries
-and can keep the usage within one translation unit.
+allocation (`alloc_items`). These could of course be wrapped up in a struct and
+passed between the functions, but for simplicity we just declare them as
+file-scope variables.  In C this means that they are global variables restricted
+to the scope of a single translation unit. They are sometimes also known as
+internal global variables and are created by applying the _static_ keyword to
+the variable declaration outside of any function. As a side note, this is one of
+the few language supported ways in which a level of privacy can be achieved in
+C.
 
 [array-dynamic-structs.c](src/array-dynamic-structs.c)
 
@@ -207,7 +208,7 @@ Appending an item to the array then becomes:
 static struct item *add_item(void)
 {
 	if (nr_items == alloc_items) {
-		alloc_items = (alloc_items + 16) * 2;
+		alloc_items = (alloc_items + 16) * 3 / 2;
 		items = xrealloc(items, alloc_items * sizeof(struct item));
 	}
 	struct item *item = items + nr_items;
@@ -263,6 +264,9 @@ Baz
 Foo
 ```
 
+This approach to arrays works well if you do not want to depend on libraries
+and can keep the usage within one translation unit.
+
 ### Dynamic array of strings using glib
 
 Here is a simpler example without the sort function and just adding strings
@@ -297,4 +301,216 @@ you would probably just a fixed-size array.
 Automatic cleanup is used through `g_autoptr` which handles freeing the
 `GPtrArray` container when exiting the scope. `g_free` is passed to free
 dynamically allocated strings inside.
+
+# LISTS
+
+## Singly linked list
+
+Singly linked lists are conceptually simple and are commonly taught as an
+introductory data structure.
+
+[list-singly-linked.c](src/list-singly-linked.c)
+
+```
+struct item {
+	int value;
+	struct item *next;
+};
+```
+
+Elements can then be added with something like:
+
+```
+static void list_add(struct item **head, int value)
+{
+	struct item *item = xcalloc(1, sizeof(*item));
+	item->value = value;
+	item->next = *head;
+	*head = item;
+}
+```
+
+```
+struct item *items = NULL;
+
+const int ints[] = { 4, 3, 2, 1, 0 };
+for (size_t i = 0; i < ARRAY_SIZE(ints); ++i) {
+	list_add(&items, ints[i]);
+}
+```
+
+...and finally we can iterate over the list with a simple for-loop:
+
+```
+for (struct item *p = items; p; p = p->next) {
+	printf("%d\n", p->value);
+}
+```
+
+We will not cover this type of list further here because it does not enable
+generic code, so each implementation has to re-invent the wheel. There are some
+well-known projects using them if you want to study this approach:
+
+- git [commit.h](https://github.com/git/git/blob/593c42fe075be0c8cd5239b3a2f21c610cbc9798/commit.h#L17-L20)
+- gcc [obstack.h](https://github.com/gcc-mirror/gcc/blob/c3743bccd47712301ade2bc8d85fd3477bfce9ca/include/obstack.h#L156-L161)
+
+## Doubly linked list
+
+By embedding a `struct list_head` (or similar) in another structure, the same
+list implementation can be used to link objects of any type.
+
+```
+struct list_head {
+	struct list_head *next, *prev;
+};
+```
+
+This type of implementation avoids ad hoc linked lists and duplicated
+definitions every time a list is needed. Also, the circular doubly-linked setup
+has performance benefits in many situation.
+
+Many battle-tested projects and libraries use this type of implementation:
+
+- Linux Kernel ([include/linux/list.h])
+- Wayland ([wayland-util.h])
+- Apache Portable Runtime ([apr_ring.h])
+- Qemu ([queue.h])
+- Systemd ([basic/list.h])
+- ccan ([ccan/list/list.h])
+- Git ([git/list.h])
+
+[include/linux/list.h]: https://elixir.bootlin.com/linux/v7.2/source/include/linux/list.h
+[wayland-util.h]: https://gitlab.freedesktop.org/wayland/wayland/-/blob/main/src/wayland-util.h?ref_type=heads#L247
+[apr_ring.h]: https://github.com/apache/apr/blob/trunk/include/apr_ring.h
+[queue.h]: https://github.com/qemu/qemu/blob/master/include/qemu/queue.h
+[basic/list.h]: https://github.com/systemd/systemd/blob/main/src/basic/list.h
+[ccan/list/list.h]: https://github.com/rustyrussell/ccan/blob/master/ccan/list/list.h
+[git/list.h]: https://github.com/git/git/blob/master/list.h
+
+The Linux kernel implementation will be used in this book to demonstrate how to
+get things done.
+
+Let's start by looking at a simple example. First, the list needs to be defined
+and initialised (`items` in this case).
+
+[list-sort.c](src/list-sort.c)
+
+```
+LIST_HEAD(items);
+```
+
+Then the structure of interest - the one to be added to the list - needs to be
+defined; and it needs to contain a `struct list_head` member.
+
+```
+struct item {
+	int value;
+	struct list_head link;
+};
+```
+
+Then items can be added:
+
+```
+static void add_item(struct list_head *items, int value)
+{
+	struct item *item = xcalloc(1, sizeof(*item));
+	item->value = value;
+	list_add_tail(&item->link, items);
+}
+```
+
+```
+const int ints[] = { 4, 2, 9, 1, 7, 0, 5, 3, 8, 6 };
+for (size_t i = 0; i < ARRAY_SIZE(ints); ++i) {
+	add_item(&items, ints[i]);
+}
+```
+
+...and iterated over:
+
+```
+struct item *item;
+list_for_each_entry(item, &items, link) {
+	printf("%d", item->value);
+}
+```
+
+> NOTE 1: The [list_head] structure should not itself hold any other data, but
+> should be embedded in the structure to be contained in a list.
+
+> NOTE 2: A [container_of] macro is used to obtain the containing structure from
+> a pointer to its `list_head` member. This book does not try to describe how
+> this works, but is just mentioning it for completeness.
+
+> NOTE 3: As opposed to the textbook singly list mental model, it is worth
+> noting that the actual head of the list tends to be a standalone `list_head`
+> structure, rather than one embedded within a structure type of interest.
+
+[container_of]: https://elixir.bootlin.com/linux/v7.2/source/include/linux/container_of.h#L19
+[list_head]: https://elixir.bootlin.com/linux/v7.2/source/include/linux/types.h#L204-L206
+
+## Sort a list
+
+The C language has no builtin support for sorting lists, but the Linux kernel
+contains a sophisticated [merge-sort](src/list_sort.c) implementation.
+
+Building on the example in the previous section, the list can be sorted with:
+
+[list-sort.c](src/list-sort.c)
+
+```
+list_sort(NULL, &items, compare_ints);
+```
+
+```
+static int compare_ints(void *priv, const struct list_head *a, const struct list_head *b)
+{
+	(void)priv;
+	struct item *item_a = container_of(a, struct item, link);
+	struct item *item_b = container_of(b, struct item, link);
+	if (item_a->value < item_b->value) {
+		return -1;
+	}
+	if (item_a->value > item_b->value) {
+		return 1;
+	}
+	return 0;
+}
+```
+
+...to generate the output:
+
+```
+0123456789
+```
+
+## Reverse a list
+
+The list from the previous example can be reversed in place:
+
+[list-reverse.c](src/list-reverse.c)
+
+```
+static void list_reverse(struct list_head *head)
+{
+	struct list_head *curr = head;
+	do {
+		struct list_head *tmp = curr->next;
+		curr->next = curr->prev;
+		curr->prev = tmp;
+		curr = curr->prev;
+	} while (curr != head);
+}
+```
+
+```
+list_reverse(&items);
+```
+
+...to generate the output:
+
+```
+9876543210
+```
 

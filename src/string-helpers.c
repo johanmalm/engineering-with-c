@@ -15,7 +15,7 @@ void rtrim(char *s)
 		return;
 	}
 	char *end = s + len - 1;
-	while (end >= s && isspace(*end)) {
+	while (end >= s && isspace((unsigned char)*end)) {
 		end--;
 	}
 	*(end + 1) = '\0';
@@ -27,21 +27,21 @@ char *string_strip(char *s)
 {
 	assert(s);
 	rtrim(s);
-	while (isspace(*s)) {
+	while (isspace((unsigned char)*s)) {
 		s++;
 	}
 	return s;
 }
 //! [1]
 
-/* Copied from linux/tools/lib/strings.c under GPL-2.0-only */
+/* Based on linux/tools/lib/strings.c under GPL-2.0-only */
 //! [2]
-void remove_spaces(char *s)
+void truncate_spaces(char *s)
 {
 	assert(s);
 	char *d = s;
 	do {
-		while (*d == ' ')
+		while (*d == ' ' && *(d + 1) == ' ')
 			++d;
 	} while ((*s++ = *d++));
 }
