@@ -96,7 +96,7 @@ data could be stored in a 2D array like `int grid[9][9]`.
 ### Array-size
 
 When iterating over a fixed-size array, it is important to know its size. For
-this purpose, an `ARRAY_SIZE` macros is commonly used:
+this purpose, an `ARRAY_SIZE` macro is commonly used:
 
 [macros.h](src/macros.h)
 
@@ -127,15 +127,13 @@ Let's start with an array of structures, using pure C with no macros, helper
 libraries, or abstractions.
 
 Assuming that we have `struct item`, we need three variables: The array itself
-(`*items`), the length of the array (`nr_items`) and the size of the heap
-allocation (`alloc_items`). These could of course be wrapped up in a struct and
-passed between the functions, but for simplicity we just declare them as
-file-scope variables.  In C this means that they are global variables restricted
-to the scope of a single translation unit. They are sometimes also known as
-internal global variables and are created by applying the _static_ keyword to
-the variable declaration outside of any function. As a side note, this is one of
-the few language supported ways in which a level of privacy can be achieved in
-C.
+(`*items`), the number of elements (`nr_items`) and the allocated capacity
+allocation (`alloc_items`). These could of course be wrapped in a struct and
+passed between functions, but for simplicity we just declare them as file-scope
+variables.
+
+> Note: A file-scope variable declared static has internal linkage and is
+> visible only within that translation unit.
 
 [array-dynamic-structs.c](src/array-dynamic-structs.c)
 
@@ -216,9 +214,11 @@ We will not cover this type of list further here because it does not enable
 generic code, so each implementation has to re-invent the wheel. There are some
 well-known projects using them if you want to study this approach:
 
-- git [commit.h](https://github.com/git/git/blob/593c42fe075be0c8cd5239b3a2f21c610cbc9798/commit.h#L17-L20)
-- gcc [obstack.h](https://github.com/gcc-mirror/gcc/blob/c3743bccd47712301ade2bc8d85fd3477bfce9ca/include/obstack.h#L156-L161)
+- git ([commit.h])
+- gcc ([obstack.h])
 
+[commit.h]: https://github.com/git/git/blob/593c42fe075be0c8cd5239b3a2f21c610cbc9798/commit.h#L17-L20
+[obstack.h]: https://github.com/gcc-mirror/gcc/blob/c3743bccd47712301ade2bc8d85fd3477bfce9ca/include/obstack.h#L156-L161
 ## Doubly linked list
 
 By embedding a `struct list_head` (or similar) in another structure, the same
@@ -231,16 +231,16 @@ struct list_head {
 ```
 
 This type of implementation avoids ad hoc linked lists and duplicated
-definitions every time a list is needed. Also, the circular doubly-linked setup
-has performance benefits in many situation.
+definitions every time a list is needed. The circular doubly-linked setup also
+simplifies insertion and removal operations.
 
 Many battle-tested projects and libraries use this type of implementation:
 
-- Linux Kernel ([include/linux/list.h])
+- Linux kernel ([include/linux/list.h])
 - Wayland ([wayland-util.h])
 - Apache Portable Runtime ([apr_ring.h])
-- Qemu ([queue.h])
-- Systemd ([basic/list.h])
+- QEMU ([queue.h])
+- systemd ([basic/list.h])
 - ccan ([ccan/list/list.h])
 - Git ([git/list.h])
 
@@ -252,8 +252,8 @@ Many battle-tested projects and libraries use this type of implementation:
 [ccan/list/list.h]: https://github.com/rustyrussell/ccan/blob/master/ccan/list/list.h
 [git/list.h]: https://github.com/git/git/blob/master/list.h
 
-The Linux kernel implementation will be used in this book to demonstrate how to
-get things done.
+The Linux kernel implementation will be used in this book to demonstrate this
+approach.
 
 Let's start by looking at a simple example. First, the list needs to be defined
 and initialised (`items` in this case).

@@ -239,7 +239,7 @@ adequate is in a Sudoku solver where the data could be stored in a 2D
 array like <code>int grid[9][9]</code>.</p>
 <h3 id="array-size">Array-size</h3>
 <p>When iterating over a fixed-size array, it is important to know its
-size. For this purpose, an <code>ARRAY_SIZE</code> macros is commonly
+size. For this purpose, an <code>ARRAY_SIZE</code> macro is commonly
 used:</p>
 <p><a href="src/macros.h">macros.h</a></p>
 <pre><code>#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))</code></pre>
@@ -280,17 +280,15 @@ runtime and can be resized as the number of elements changes.</p>
 <p>Let’s start with an array of structures, using pure C with no macros,
 helper libraries, or abstractions.</p>
 <p>Assuming that we have <code>struct item</code>, we need three
-variables: The array itself (<code>*items</code>), the length of the
-array (<code>nr_items</code>) and the size of the heap allocation
-(<code>alloc_items</code>). These could of course be wrapped up in a
-struct and passed between the functions, but for simplicity we just
-declare them as file-scope variables. In C this means that they are
-global variables restricted to the scope of a single translation unit.
-They are sometimes also known as internal global variables and are
-created by applying the <em>static</em> keyword to the variable
-declaration outside of any function. As a side note, this is one of the
-few language supported ways in which a level of privacy can be achieved
-in C.</p>
+variables: The array itself (<code>*items</code>), the number of
+elements (<code>nr_items</code>) and the allocated capacity allocation
+(<code>alloc_items</code>). These could of course be wrapped in a struct
+and passed between functions, but for simplicity we just declare them as
+file-scope variables.</p>
+<blockquote>
+<p>Note: A file-scope variable declared static has internal linkage and
+is visible only within that translation unit.</p>
+</blockquote>
 <p><a href="src/array-dynamic-structs.c">array-dynamic-structs.c</a></p>
 <pre><code>static struct item *items;
 static size_t nr_items, alloc_items;</code></pre>
@@ -394,10 +392,10 @@ enable generic code, so each implementation has to re-invent the wheel.
 There are some well-known projects using them if you want to study this
 approach:</p>
 <ul>
-<li>git <a
-href="https://github.com/git/git/blob/593c42fe075be0c8cd5239b3a2f21c610cbc9798/commit.h#L17-L20">commit.h</a></li>
-<li>gcc <a
-href="https://github.com/gcc-mirror/gcc/blob/c3743bccd47712301ade2bc8d85fd3477bfce9ca/include/obstack.h#L156-L161">obstack.h</a></li>
+<li>git (<a
+href="https://github.com/git/git/blob/593c42fe075be0c8cd5239b3a2f21c610cbc9798/commit.h#L17-L20">commit.h</a>)</li>
+<li>gcc (<a
+href="https://github.com/gcc-mirror/gcc/blob/c3743bccd47712301ade2bc8d85fd3477bfce9ca/include/obstack.h#L156-L161">obstack.h</a>)</li>
 </ul>
 <h2 id="doubly-linked-list">Doubly linked list</h2>
 <p>By embedding a <code>struct list_head</code> (or similar) in another
@@ -407,20 +405,20 @@ any type.</p>
     struct list_head *next, *prev;
 };</code></pre>
 <p>This type of implementation avoids ad hoc linked lists and duplicated
-definitions every time a list is needed. Also, the circular
-doubly-linked setup has performance benefits in many situation.</p>
+definitions every time a list is needed. The circular doubly-linked
+setup also simplifies insertion and removal operations.</p>
 <p>Many battle-tested projects and libraries use this type of
 implementation:</p>
 <ul>
-<li>Linux Kernel (<a
+<li>Linux kernel (<a
 href="https://elixir.bootlin.com/linux/v7.2/source/include/linux/list.h">include/linux/list.h</a>)</li>
 <li>Wayland (<a
 href="https://gitlab.freedesktop.org/wayland/wayland/-/blob/main/src/wayland-util.h?ref_type=heads#L247">wayland-util.h</a>)</li>
 <li>Apache Portable Runtime (<a
 href="https://github.com/apache/apr/blob/trunk/include/apr_ring.h">apr_ring.h</a>)</li>
-<li>Qemu (<a
+<li>QEMU (<a
 href="https://github.com/qemu/qemu/blob/master/include/qemu/queue.h">queue.h</a>)</li>
-<li>Systemd (<a
+<li>systemd (<a
 href="https://github.com/systemd/systemd/blob/main/src/basic/list.h">basic/list.h</a>)</li>
 <li>ccan (<a
 href="https://github.com/rustyrussell/ccan/blob/master/ccan/list/list.h">ccan/list/list.h</a>)</li>
@@ -428,7 +426,7 @@ href="https://github.com/rustyrussell/ccan/blob/master/ccan/list/list.h">ccan/li
 href="https://github.com/git/git/blob/master/list.h">git/list.h</a>)</li>
 </ul>
 <p>The Linux kernel implementation will be used in this book to
-demonstrate how to get things done.</p>
+demonstrate this approach.</p>
 <p>Let’s start by looking at a simple example. First, the list needs to
 be defined and initialised (<code>items</code> in this case).</p>
 <p><a href="src/list-sort.c">list-sort.c</a></p>
