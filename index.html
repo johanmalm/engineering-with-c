@@ -241,12 +241,14 @@ array like <code>int grid[9][9]</code>.</p>
 <p>When iterating over a fixed-size array, it is important to know its
 size. For this purpose, an <code>ARRAY_SIZE</code> macro is commonly
 used:</p>
+<pre><code>#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0])</code></pre>
+<p>However, this only works when <code>arr</code> is an actual array,
+not when it is a pointer. A better version is therefore:</p>
 <p><a href="src/macros.h">macros.h</a></p>
-<pre><code>#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))</code></pre>
-<blockquote>
-<p>Note: This works only when <code>arr</code> is an actual array, not
-when it is a pointer.</p>
-</blockquote>
+<pre><code>#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))</code></pre>
+<pre><code>#define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+#define __is_array(a) (!__same_type((a), &amp;(a)[0]))
+#define __must_be_array(a) 0 * _Static_assert(__is_array(a), &quot;must be array&quot;)</code></pre>
 <h3 id="fixed-size-array-of-strings">Fixed-size array of strings</h3>
 <p><a
 href="src/array-fixed-size-strings.c">array-fixed-size-strings.c</a></p>
@@ -281,7 +283,7 @@ runtime and can be resized as the number of elements changes.</p>
 helper libraries, or abstractions.</p>
 <p>Assuming that we have <code>struct item</code>, we need three
 variables: The array itself (<code>*items</code>), the number of
-elements (<code>nr_items</code>) and the allocated capacity allocation
+elements (<code>nr_items</code>) and the allocated capacity
 (<code>alloc_items</code>). These could of course be wrapped in a struct
 and passed between functions, but for simplicity we just declare them as
 file-scope variables.</p>
@@ -354,7 +356,7 @@ Bar
 Baz</code></pre>
 <p>In the above example <code>g_strdup()</code> was used to provide a
 more realistic real-life example of a dynamic array, because if you knew
-all the strings at build time you would probably just a fixed-size
+all the strings at build time you would probably just use a fixed-size
 array.</p>
 <p>Automatic cleanup is used through <code>g_autoptr</code> which
 handles freeing the <code>GPtrArray</code> container when exiting the

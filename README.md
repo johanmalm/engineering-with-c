@@ -132,13 +132,24 @@ data could be stored in a 2D array like `int grid[9][9]`.
 When iterating over a fixed-size array, it is important to know its size. For
 this purpose, an `ARRAY_SIZE` macro is commonly used:
 
+```
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0])
+```
+
+However, this only works when `arr` is an actual array, not when it is a
+pointer. A better version is therefore:
+
 [macros.h](src/macros.h)
 
 ```
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
 ```
 
-> Note: This works only when `arr` is an actual array, not when it is a pointer.
+```
+#define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
+#define __is_array(a) (!__same_type((a), &(a)[0]))
+#define __must_be_array(a) 0 * _Static_assert(__is_array(a), "must be array")
+```
 
 ### Fixed-size array of strings
 
@@ -186,9 +197,8 @@ libraries, or abstractions.
 
 Assuming that we have `struct item`, we need three variables: The array itself
 (`*items`), the number of elements (`nr_items`) and the allocated capacity
-allocation (`alloc_items`). These could of course be wrapped in a struct and
-passed between functions, but for simplicity we just declare them as file-scope
-variables.
+(`alloc_items`). These could of course be wrapped in a struct and passed between
+functions, but for simplicity we just declare them as file-scope variables.
 
 > Note: A file-scope variable declared static has internal linkage and is
 > visible only within that translation unit.
@@ -294,7 +304,7 @@ Baz
 
 In the above example `g_strdup()` was used to provide a more realistic real-life
 example of a dynamic array, because if you knew all the strings at build time
-you would probably just a fixed-size array.
+you would probably just use a fixed-size array.
 
 Automatic cleanup is used through `g_autoptr` which handles freeing the
 `GPtrArray` container when exiting the scope. `g_free` is passed to free
