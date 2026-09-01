@@ -5,11 +5,11 @@
 //! [1]
 #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
 #define __is_array(a) (!__same_type((a), &(a)[0]))
-#define __must_be_array(a) 0 * _Static_assert(__is_array(a), "must be array")
+#define __must_be_array(a) ({ _Static_assert(__is_array(a), "not array"); 0; })
 //! [1]
 
 //! [0]
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0])) + __must_be_array(arr)
 //! [0]
 
 #ifndef MIN

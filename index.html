@@ -135,6 +135,7 @@ a.perma:hover {
 <p><i>A collection of code snippets to demonstrate ways of working in
 C</i></p>
 <h1 id="table-of-contents">Table of Contents</h1>
+<h2 id="code-snippets">Code Snippets</h2>
 <ul>
 <li><a href="#foreword">FOREWORD</a></li>
 <li><a href="#strings">STRINGS</a>
@@ -155,6 +156,15 @@ string</a></li>
 <li><a href="#doubly-linked-list">Doubly linked list</a></li>
 <li><a href="#sort-a-list">Sort a list</a></li>
 <li><a href="#reverse-a-list">Reverse a list</a></li>
+</ul></li>
+<li><a href="#memory">MEMORY</a>
+<ul>
+<li><a href="#storage-duration">Storage Duration</a></li>
+<li><a href="#stack-and-heap">Stack and Heap</a></li>
+<li><a href="#lifetime">Lifetime</a></li>
+<li><a href="#memory-errors">Memory Errors</a></li>
+<li><a href="#sanitizers">Sanitizers</a></li>
+<li><a href="#cleanup">Cleanup</a></li>
 </ul></li>
 </ul>
 <h1 id="foreword">FOREWORD</h1>
@@ -234,21 +244,29 @@ members under a single name.</p>
 <h2 id="fixed-size-arrays">Fixed-size arrays</h2>
 <p>In C, a <em>fixed-size</em> array has a number of elements that is
 fixed when the array is defined. Its storage may have automatic, static
-or allocated duration. An example of a use-case in which this is
-adequate is in a Sudoku solver where the data could be stored in a 2D
-array like <code>int grid[9][9]</code>.</p>
+or allocated duration.</p>
 <h3 id="array-size">Array-size</h3>
 <p>When iterating over a fixed-size array, it is important to know its
 size. For this purpose, an <code>ARRAY_SIZE</code> macro is commonly
 used:</p>
 <pre><code>#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0])</code></pre>
-<p>However, this only works when <code>arr</code> is an actual array,
-not when it is a pointer. A better version is therefore:</p>
+<p><code>ARRAY_SIZE</code> should only be used on arrays, not pointers.
+The version above silently continues with incorrect results if a pointer
+is passed to it, so a better version - which catches the problem at
+compile time - is therefore:</p>
 <p><a href="src/macros.h">macros.h</a></p>
-<pre><code>#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))</code></pre>
+<pre><code>#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0])) + __must_be_array(arr)</code></pre>
 <pre><code>#define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
 #define __is_array(a) (!__same_type((a), &amp;(a)[0]))
-#define __must_be_array(a) 0 * _Static_assert(__is_array(a), &quot;must be array&quot;)</code></pre>
+#define __must_be_array(a) ({ _Static_assert(__is_array(a), &quot;not array&quot;); 0; })</code></pre>
+<p>This relies on GNU C extensions
+<code>__builtin_types_compatible_p()</code> and <code>({ ... })</code>
+statement-expression, so if it important to not use gcc or clang then
+stick with the version without <code>__must_be_array()</code>.</p>
+<p>It is very likely that the next C standard (C2y) will contain
+<code>_Countof()</code> which fundamentally does the same as the above
+<code>ARRAY_SIZE()</code>. GCC 16 and Clang 21 already have
+implementation support.</p>
 <h3 id="fixed-size-array-of-strings">Fixed-size array of strings</h3>
 <p><a
 href="src/array-fixed-size-strings.c">array-fixed-size-strings.c</a></p>
@@ -514,6 +532,151 @@ sorted with:</p>
 <pre><code>list_reverse(&amp;items);</code></pre>
 <p>…to generate the output:</p>
 <pre><code>9876543210</code></pre>
+<h1 id="memory">MEMORY</h1>
+<h2 id="storage-duration">Storage Duration</h2>
+<p>In C, storage duration determines how long an object’s storage
+exists. The language defines four storage durations: automatic, static,
+thread, and allocated. The stack and heap are common implementation
+mechanisms used to provide some of these.</p>
+<h2 id="stack-and-heap">Stack and Heap</h2>
+<p>Although the C standard describes storage duration, it doesn’t
+prescribe how that storage must be implemented. In most systems,
+automatic storage is provided by the stack, while dynamically allocated
+storage comes from the heap.</p>
+<p>The stack is managed automatically. An automatic object’s lifetime
+ends when execution leaves the block in which it is declared. The stack
+is usually limited in size, so it is unsuitable for arbitrarily large or
+long-lived objects.</p>
+<p>The heap provides storage that can be allocated dynamically with
+functions such as <code>malloc()</code> and <code>calloc()</code>. Its
+lifetime is controlled explicitly by the program. This flexibility comes
+at the cost of allocation overhead and the responsibility for managing
+the lifetime correctly.</p>
+<h2 id="lifetime">Lifetime</h2>
+<p>Lifetime describes the period during which the object exists. For
+example:</p>
+<pre><code>void foo(void)
+{
+    int value = 42;
+    /* value exists and can be used here */
+}</code></pre>
+<pre><code>void bar(void)
+{
+    int *value = malloc(sizeof *value);
+    *value = 42;
+    /*
+     * The pointer and the allocated object have different lifetimes. The
+     * local variable `value` has automatic storage duration. The object it
+     * points to has allocated storage duration.
+     */
+    free(value);
+}</code></pre>
+<h2 id="memory-errors">Memory Errors</h2>
+<p>Memory errors occur when a program accesses storage incorrectly. Two
+fundamental questions are:</p>
+<ol type="1">
+<li>Is the object still within its lifetime?</li>
+<li>Is the access within the object’s bounds?</li>
+</ol>
+<p>For example, accessing an object after <code>free()</code> is a
+lifetime error:</p>
+<pre><code>int *value = malloc(sizeof *value);
+free(value);
+printf(&quot;%d\n&quot;, *value); /* use-after-free */</code></pre>
+<p>Accessing beyond the end of an object is a bounds error:</p>
+<pre><code>int values[4];
+values[4] = 42; /* out-of-bounds */</code></pre>
+<p>Another common error is reading a value before it has been
+initialised:</p>
+<pre><code>int value;
+printf(&quot;%d\n&quot;, value); /* uninitialised value */</code></pre>
+<p>These errors can be difficult to diagnose because the invalid access
+does not necessarily cause an immediate failure.</p>
+<h2 id="sanitizers">Sanitizers</h2>
+<p>GCC and Clang provide a family of runtime error detectors called
+sanitizers. They instrument a program at compile time and report errors
+when the instrumented program runs.</p>
+<p><code>AddressSanitizer</code> (ASan) detects memory errors such as
+buffer overflows, use-after-free, use-after-scope and double-free.</p>
+<p><code>UndefinedBehaviorSanitizer</code> (UBSan) detects various forms
+of undefined behaviour, such as signed integer overflow, invalid shifts
+and misaligned memory accesses.</p>
+<p><code>LeakSanitizer</code> (LSan) detects memory leaks, where
+allocated memory is no longer reachable. On platforms where
+LeakSanitizer is integrated with AddressSanitizer, this enables ASan,
+UBSan and LSan:</p>
+<pre><code>CFLAGS += -g -fsanitize=address,undefined</code></pre>
+<p>The <code>-g</code> option includes debugging information, allowing
+the sanitizer to produce diagnostics containing useful source locations
+such as filenames and line numbers.</p>
+<p>They add runtime and memory overhead, so they are normally only used
+during development and testing rather than in production builds.</p>
+<h2 id="cleanup">Cleanup</h2>
+<p>Standard C does not currently provide an automatic cleanup mechanism
+for allocated objects. Various proposals have explored adding deferred
+cleanup to C, but portable C must currently use explicit cleanup,
+typically with goto, or compiler-specific extensions.</p>
+<p>GCC and Clang support the compiler extension
+<code>__attribute__((__cleanup__()))</code> which is used by significant
+projects like <code>Linux</code> and <code>systemd</code>. The compiler
+automatically calls a specified function when then variable’s scope
+ends.</p>
+<h3 id="example-code">Example Code</h3>
+<p>In a lot of existing C code, <code>free()</code> is called like in
+the example below for any heap allocated memory.</p>
+<p>When a function has several return paths, <code>goto</code> is
+commonly used to funnel them through a single cleanup path. This is one
+of the few uses of goto that is widely considered good practice in
+C.</p>
+<p><a href="src/cleanup-traditional.c">cleanup-traditional.c</a></p>
+<pre><code>int main(void) {
+    char *buffer = xmalloc(4096);
+    /* Do something with buffer */
+    free(buffer);
+}</code></pre>
+<p>GCC and Clang’s cleanup attribute provides a similar scope-based
+cleanup mechanism:</p>
+<p><a href="src/cleanup-simple.c">cleanup-simple.c</a></p>
+<pre><code>void freep(char **ptr) {
+    free(*ptr);
+}</code></pre>
+<pre><code>int main(void) {
+    __attribute__((__cleanup__(freep))) char *buffer = xcalloc(1, 4096);
+    /* Do something with buffer */
+}</code></pre>
+<blockquote>
+<p>Note: The cleanup function receives the address of buffer, so
+<code>freep()</code> takes a <code>char **</code> and frees the pointer
+stored there.</p>
+</blockquote>
+<p>Whilst functional, this is quite ugly and verbose. Taking inspiration
+from <code>systemd</code>, it can be made more succinct and to the
+point:</p>
+<p><a href="src/cleanup.h">cleanup.h</a><br /> <a
+href="src/cleanup-better.c">cleanup-better.c</a></p>
+<pre><code>int main(void) {
+    cleanup_free char *buffer = xcalloc(1, 4096);
+    /* Do something with buffer */
+}</code></pre>
+<h3 id="references">References</h3>
+<ul>
+<li><code>Linux</code> defines a <code>__cleanup()</code> macro in <a
+href="https://elixir.bootlin.com/linux/v7.2/source/include/linux/compiler_attributes.h#L76">include/linux/compiler_attributes.h</a>
+which just abbreviates the attribute-cleanup syntax. It then uses that
+in a bunch of helpers in <a
+href="https://elixir.bootlin.com/linux/v7.2/source/include/linux/cleanup.h#L450">include/linux/cleanup.h</a>
+including <code>scoped_guard()</code> and
+<code>DEFINE_FREE()</code>.</li>
+<li><code>systemd</code> takes a similar approach defining
+<ul>
+<li><code>_cleanup_</code> in <a
+href="https://github.com/systemd/systemd/blob/d1697c4ff8ce4581ccb9db2169477ec59bfc6689/src/fundamental/macro.h#L79">systemd/src/fundamental/macro.h</a></li>
+<li><code>_cleanup_free_</code> in <a
+href="https://github.com/systemd/systemd/blob/d1697c4ff8ce4581ccb9db2169477ec59bfc6689/src/basic/alloc-util.h#L82">systemd/src/basic/alloc-util.h</a></li>
+<li><code>_cleanup_fclose_</code> in <a
+href="https://github.com/systemd/systemd/blob/d1697c4ff8ce4581ccb9db2169477ec59bfc6689/src/basic/fd-util.h#L113">systemd/src/basic/fd-util.h</a></li>
+</ul></li>
+</ul>
 </main>
 </body>
 </html>

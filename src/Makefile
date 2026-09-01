@@ -7,7 +7,6 @@ QUIET_LINK = @echo '     LINK  '$@;
 CFLAGS = -g -Wall -Wextra -std=gnu23
 CFLAGS += -fsanitize=address,undefined -fno-common -fno-omit-frame-pointer -rdynamic
 CFLAGS += -fanalyzer
-CFLAGS += -Wno-analyzer-deref-before-check -Wno-analyzer-malloc-leak
 CFLAGS += -Wno-unused-parameter
 CFLAGS += `pkg-config --cflags glib-2.0`
 LDFLAGS += `pkg-config --libs glib-2.0`
@@ -21,6 +20,9 @@ PROGS = \
 	array-fixed-size-structs \
 	array-dynamic-structs \
 	array-dynamic-strings-glib \
+	cleanup-traditional \
+	cleanup-simple \
+	cleanup-better \
 	generate-readme
 
 HELPER = \
@@ -41,4 +43,4 @@ $(PROGS): % : %.o $(HELPER)
 	$(QUIET_CC)$(CC) $(CFLAGS) -c $<
 
 clean:
-	$(RM) -f $(PROGS) $(OBJ) $(HELPER)
+	@$(RM) -f $(PROGS) $(OBJ) $(HELPER)

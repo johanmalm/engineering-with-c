@@ -4,6 +4,8 @@
 
 # Table of Contents
 
+## Code Snippets
+
 * [FOREWORD](#foreword)
 * [STRINGS](#strings)
     * [Trim leading and trailing white-space from string](#trim-leading-and-trailing-white-space-from-string)
@@ -16,6 +18,13 @@
     * [Doubly linked list](#doubly-linked-list)
     * [Sort a list](#sort-a-list)
     * [Reverse a list](#reverse-a-list)
+* [MEMORY](#memory)
+    * [Storage Duration](#storage-duration)
+    * [Stack and Heap](#stack-and-heap)
+    * [Lifetime](#lifetime)
+    * [Memory Errors](#memory-errors)
+    * [Sanitizers](#sanitizers)
+    * [Cleanup](#cleanup)
 
 # FOREWORD
 
@@ -89,9 +98,7 @@ single name.
 ## Fixed-size arrays
 
 In C, a _fixed-size_ array has a number of elements that is fixed when the array
-is defined. Its storage may have automatic, static or allocated duration. An
-example of a use-case in which this is adequate is in a Sudoku solver where the
-data could be stored in a 2D array like `int grid[9][9]`.
+is defined. Its storage may have automatic, static or allocated duration.
 
 ### Array-size
 
@@ -102,14 +109,23 @@ this purpose, an `ARRAY_SIZE` macro is commonly used:
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0])
 ```
 
-However, this only works when `arr` is an actual array, not when it is a
-pointer. A better version is therefore:
+`ARRAY_SIZE` should only be used on arrays, not pointers. The version above
+silently continues with incorrect results if a pointer is passed to it, so a
+better version - which catches the problem at compile time - is therefore:
 
 [macros.h](src/macros.h)
 
 @code:src/macros.h:0
 
 @code:src/macros.h:1
+
+This relies on GNU C extensions `__builtin_types_compatible_p()` and `({ ... })`
+statement-expression, so if it important to not use gcc or clang then stick with
+the version without `__must_be_array()`.
+
+It is very likely that the next C standard (C2y) will contain `_Countof()` which
+fundamentally does the same as the above `ARRAY_SIZE()`.  GCC 16 and Clang 21
+already have implementation support.
 
 ### Fixed-size array of strings
 
@@ -332,3 +348,174 @@ The list from the previous example can be reversed in place:
 @exec:./src/list-reverse
 ```
 
+# MEMORY
+
+## Storage Duration
+
+In C, storage duration determines how long an object's storage exists. The
+language defines four storage durations: automatic, static, thread, and
+allocated. The stack and heap are common implementation mechanisms used to
+provide some of these.
+
+## Stack and Heap
+
+Although the C standard describes storage duration, it doesn't prescribe how
+that storage must be implemented. In most systems, automatic storage is provided
+by the stack, while dynamically allocated storage comes from the heap.
+
+The stack is managed automatically. An automatic object's lifetime ends when
+execution leaves the block in which it is declared.  The stack is usually
+limited in size, so it is unsuitable for arbitrarily large or long-lived
+objects.
+
+The heap provides storage that can be allocated dynamically with functions such
+as `malloc()` and `calloc()`. Its lifetime is controlled explicitly by the
+program. This flexibility comes at the cost of allocation overhead and the
+responsibility for managing the lifetime correctly.
+
+## Lifetime
+
+Lifetime describes the period during which the object exists. For example:
+
+```
+void foo(void)
+{
+	int value = 42;
+	/* value exists and can be used here */
+}
+```
+
+```
+void bar(void)
+{
+	int *value = malloc(sizeof *value);
+	*value = 42;
+	/*
+	 * The pointer and the allocated object have different lifetimes. The
+	 * local variable `value` has automatic storage duration. The object it
+	 * points to has allocated storage duration.
+	 */
+	free(value);
+}
+```
+
+## Memory Errors
+
+Memory errors occur when a program accesses storage incorrectly. Two fundamental
+questions are:
+
+1. Is the object still within its lifetime?
+2. Is the access within the object's bounds?
+
+For example, accessing an object after `free()` is a lifetime error:
+
+```
+int *value = malloc(sizeof *value);
+free(value);
+printf("%d\n", *value); /* use-after-free */
+```
+
+Accessing beyond the end of an object is a bounds error:
+
+```
+int values[4];
+values[4] = 42; /* out-of-bounds */
+```
+
+Another common error is reading a value before it has been initialised:
+
+```
+int value;
+printf("%d\n", value); /* uninitialised value */
+```
+
+These errors can be difficult to diagnose because the invalid access does not
+necessarily cause an immediate failure.
+
+## Sanitizers
+
+GCC and Clang provide a family of runtime error detectors called sanitizers.
+They instrument a program at compile time and report errors when the
+instrumented program runs.
+
+`AddressSanitizer` (ASan) detects memory errors such as buffer overflows,
+use-after-free, use-after-scope and double-free.
+
+`UndefinedBehaviorSanitizer` (UBSan) detects various forms of undefined behaviour,
+such as signed integer overflow, invalid shifts and misaligned memory accesses.
+
+`LeakSanitizer` (LSan) detects memory leaks, where allocated memory is no longer
+reachable. On platforms where LeakSanitizer is integrated with AddressSanitizer,
+this enables ASan, UBSan and LSan: 
+
+```
+CFLAGS += -g -fsanitize=address,undefined
+```
+
+The `-g` option includes debugging information, allowing the sanitizer to
+produce diagnostics containing useful source locations such as filenames and
+line numbers.
+
+They add runtime and memory overhead, so they are normally only used during
+development and testing rather than in production builds.
+
+## Cleanup
+
+Standard C does not currently provide an automatic cleanup mechanism for
+allocated objects. Various proposals have explored adding deferred cleanup to C,
+but portable C must currently use explicit cleanup, typically with goto, or
+compiler-specific extensions.
+
+GCC and Clang support the compiler extension `__attribute__((__cleanup__()))`
+which is used by significant projects like `Linux` and `systemd`. The compiler
+automatically calls a specified function when then variable's scope ends.
+
+### Example Code
+
+In a lot of existing C code, `free()` is called like in the example below for
+any heap allocated memory. 
+
+When a function has several return paths, `goto` is commonly used to funnel them
+through a single cleanup path. This is one of the few uses of goto that is
+widely considered good practice in C.
+
+[cleanup-traditional.c](src/cleanup-traditional.c)
+
+@code:src/cleanup-traditional.c:0
+
+GCC and Clang's cleanup attribute provides a similar scope-based cleanup
+mechanism:
+
+[cleanup-simple.c](src/cleanup-simple.c)
+
+@code:src/cleanup-simple.c:0
+@code:src/cleanup-simple.c:1
+
+> Note: The cleanup function receives the address of buffer, so `freep()` takes
+> a `char **` and frees the pointer stored there.
+
+Whilst functional, this is quite ugly and verbose. Taking inspiration from
+`systemd`, it can be made more succinct and to the point:
+
+[cleanup.h](src/cleanup.h)<br />
+[cleanup-better.c](src/cleanup-better.c)
+
+@code:src/cleanup-better.c:0
+
+### References
+
+- `Linux` defines a `__cleanup()` macro in [include/linux/compiler_attributes.h]
+  which just abbreviates the attribute-cleanup syntax. It then uses that in a
+  bunch of helpers in [include/linux/cleanup.h] including `scoped_guard()` and
+  `DEFINE_FREE()`.
+- `systemd` takes a similar approach defining
+    - `_cleanup_` in [systemd/src/fundamental/macro.h]
+    - `_cleanup_free_` in [systemd/src/basic/alloc-util.h]
+    - `_cleanup_fclose_` in [systemd/src/basic/fd-util.h]
+
+[include/linux/compiler_attributes.h]: https://elixir.bootlin.com/linux/v7.2/source/include/linux/compiler_attributes.h#L76
+[include/linux/cleanup.h]: https://elixir.bootlin.com/linux/v7.2/source/include/linux/cleanup.h#L450
+
+[systemd/src/fundamental/macro.h]: https://github.com/systemd/systemd/blob/d1697c4ff8ce4581ccb9db2169477ec59bfc6689/src/fundamental/macro.h#L79
+[systemd/src/basic/alloc-util.h]: https://github.com/systemd/systemd/blob/d1697c4ff8ce4581ccb9db2169477ec59bfc6689/src/basic/alloc-util.h#L82
+[systemd/src/basic/fd-util.h]: https://github.com/systemd/systemd/blob/d1697c4ff8ce4581ccb9db2169477ec59bfc6689/src/basic/fd-util.h#L113

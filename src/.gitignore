@@ -8,6 +8,9 @@ generate-readme
 list-singly-linked
 list-sort
 list-reverse
+cleanup-traditional
+cleanup-simple
+cleanup-better
 
 truncate-spaces
 
