@@ -96,8 +96,10 @@ void process_markup(char *line)
 	 * - code:filename:id
 	 */
 	if (!g_ascii_strcasecmp(tokens[0], "code") && len == 3) {
+		fprintf(stderr, "c");
 		print_code_snippet(tokens[1], tokens[2]);
 	} else if (!g_ascii_strcasecmp(tokens[0], "exec") && len == 2) {
+		fprintf(stderr, "e");
 		fflush(stdout);
 		spawn(tokens[1]);
 		fflush(stdout);
@@ -125,4 +127,5 @@ int main(int argc, char **argv)
 		}
 	}
 	free(line);
+	fprintf(stderr, "\n");
 }
