@@ -190,9 +190,8 @@ the programmer has made a mistake, rather than as a means of handling
 invalid user input. Depending on how you intend to use the code, it may
 therefore be better to replace the <code>assert()</code> with more
 graceful error handling and an appropriate error message.</p>
-<p>In general, the code is intended to be portable but it has only been
-tested on Linux, so feedback is appreciated if you find any issues on
-other Operating Systems.</p>
+<p>In general, the code has only been tested on Linux, so feedback is
+appreciated if you find any issues on other Operating Systems.</p>
 <p>If you see something that is wrong, incorrectly described or missing
 I would be grateful for a github issue or pull request.</p>
 <h1 id="strings">STRINGS</h1>
@@ -359,7 +358,7 @@ baz</code></pre>
 <h2 id="introduction">Introduction</h2>
 <p>C provides two fundamental aggregate types: arrays, which contain
 multiple elements of the same type, and structures, which group multiple
-members under a single name.</p>
+members of different (or the same) type under a single name.</p>
 <h2 id="fixed-size-arrays">Fixed-size arrays</h2>
 <p>In C, a <em>fixed-size</em> array has a number of elements that is
 fixed when the array is defined. Its storage may have automatic, static
@@ -380,7 +379,7 @@ compile time - is therefore:</p>
 #define __must_be_array(a) ({ _Static_assert(__is_array(a), &quot;not array&quot;); 0; })</code></pre>
 <p>This relies on GNU C extensions
 <code>__builtin_types_compatible_p()</code> and <code>({ ... })</code>
-statement-expression, so if it important to not use gcc or clang then
+statement-expression, so if it important not to use gcc or clang then
 stick with the version without <code>__must_be_array()</code>.</p>
 <p>It is very likely that the next C standard (C2y) will contain
 <code>_Countof()</code> which fundamentally does the same as the above

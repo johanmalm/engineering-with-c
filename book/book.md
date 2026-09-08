@@ -49,9 +49,8 @@ mistake, rather than as a means of handling invalid user input. Depending on how
 you intend to use the code, it may therefore be better to replace the `assert()`
 with more graceful error handling and an appropriate error message.
 
-In general, the code is intended to be portable but it has only been tested on
-Linux, so feedback is appreciated if you find any issues on other Operating
-Systems.
+In general, the code has only been tested on Linux, so feedback is appreciated
+if you find any issues on other Operating Systems.
 
 If you see something that is wrong, incorrectly described or missing I would be
 grateful for a github issue or pull request.
@@ -189,8 +188,8 @@ delimiter characters, much like `strtok_r()`.
 ## Introduction
 
 C provides two fundamental aggregate types: arrays, which contain multiple
-elements of the same type, and structures, which group multiple members under a
-single name.
+elements of the same type, and structures, which group multiple members of
+different (or the same) type under a single name.
 
 ## Fixed-size arrays
 
@@ -217,7 +216,7 @@ better version - which catches the problem at compile time - is therefore:
 @code:src/macros.h:1
 
 This relies on GNU C extensions `__builtin_types_compatible_p()` and `({ ... })`
-statement-expression, so if it important to not use gcc or clang then stick with
+statement-expression, so if it important not to use gcc or clang then stick with
 the version without `__must_be_array()`.
 
 It is very likely that the next C standard (C2y) will contain `_Countof()` which
