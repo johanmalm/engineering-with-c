@@ -10,6 +10,7 @@
 * [STRINGS](#strings)
     * [Trim leading and trailing white-space from string](#trim-leading-and-trailing-white-space-from-string)
     * [Truncate spaces in string](#truncate-spaces-in-string)
+    * [Split a string on a delimiter](#split-a-string-on-a-delimiter)
 * [ARRAYS](#arrays)
     * [Fixed-size arrays](#fixed-size-arrays)
     * [Dynamic arrays](#dynamic-arrays)
@@ -86,6 +87,102 @@ grateful for a github issue or pull request.
 truncate-spaces "foo       bar    baz"
 @exec:./src/truncate-spaces "foo       bar    baz"
 ```
+
+## Split a string on a delimiter
+
+There are several ways to split a string in C, and the right choice depends on
+what you need from the result.
+
+### With `strtok_r()`
+
+`strtok_r()` is a POSIX function and is a fast way of splitting a string without
+making any allocations. This can make it a good choice when performance matters,
+provided its behaviour matches your requirements.
+
+There are three important things to understand about `strtok_r()`:
+
+1. It modifies the original string, replacing delimiters with `'\0'`.
+2. It treats the delimiter argument as a set of individual characters, rather
+   than as a complete delimiter string. For example, with the input
+   `"apple-orange,banana"` and delimiters `",-"`, it splits on either `-` or
+   `,`.
+3. It ignores empty fields. For example, `"apple,,banana"` produces only
+   `"apple"` and `"banana"`.
+
+The `"_r"` suffix means that the function is reentrant: the state required to
+continue tokenising is supplied by the caller through saveptr. This makes it
+preferable to `strtok()` when writing code that may be called concurrently or
+when multiple strings need to be tokenised at the same time.
+
+**Example Function:**
+
+[split-with-strtok.c](src/split-with-strtok.c)
+
+@code:src/split-with-strtok.c:0
+
+**Example Usage:**
+
+```
+./src/split-with-strtok "apples,oranges;pears,grapes" ",;"
+@exec:./src/split-with-strtok "apples,oranges;pears,grapes" ",;"
+```
+
+### By allocating parts
+
+Sometimes we need something different. We may want to preserve empty fields, or
+we may want the resulting strings to have a lifetime independent of the original
+string.
+
+In this example, the delimiter is treated as a single, exact sequence of
+characters. Splitting therefore occurs only when the complete delimiter
+substring is found.
+
+Unlike `strtok_r()`, this implementation preserves empty fields.
+
+**Example Function:**
+
+[string-split.c](src/string-split.c)
+
+@code:src/string-split.c:0
+
+**Example Usage:**
+
+[split.c](src/split.c)
+
+```
+./src/split "apples,oranges,pears,grapes" ","
+@exec:./src/split "apples,oranges,pears,grapes" ","
+```
+
+```
+./src/split "1, 2, 3, 4, 5" ", "
+@exec:./src/split "1, 2, 3, 4, 5" ", "
+```
+
+The delimiter can also be a longer substring:
+
+```
+./src/split "hello---world---my---name---is---john" "---"
+@exec:./src/split "hello---world---my---name---is---john" "---"
+```
+
+### Using GLib
+
+If you are already linking with GLib, `g_strsplit()` and `g_strsplit_set()`
+provide convenient alternatives. `g_strsplit()` treats its delimiter as a
+complete string, while `g_strsplit_set()` treats it as a set of individual
+delimiter characters, much like `strtok_r()`.
+
+**Example Usage:**
+
+[split-with-glib.c](src/split-with-glib.c)
+
+@code:src/split-with-glib.c:0
+
+```
+@exec:./src/split-with-glib
+```
+
 
 # ARRAYS
 

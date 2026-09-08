@@ -144,6 +144,8 @@ C</i></p>
 leading and trailing white-space from string</a></li>
 <li><a href="#truncate-spaces-in-string">Truncate spaces in
 string</a></li>
+<li><a href="#split-a-string-on-a-delimiter">Split a string on a
+delimiter</a></li>
 </ul></li>
 <li><a href="#arrays">ARRAYS</a>
 <ul>
@@ -236,6 +238,123 @@ and trailing white-space from string</h2>
 <p><a href="src/truncate-spaces.c">truncate-spaces.c</a></p>
 <pre><code>truncate-spaces &quot;foo       bar    baz&quot;
 foo bar baz</code></pre>
+<h2 id="split-a-string-on-a-delimiter">Split a string on a
+delimiter</h2>
+<p>There are several ways to split a string in C, and the right choice
+depends on what you need from the result.</p>
+<h3 id="with-strtok_r">With <code>strtok_r()</code></h3>
+<p><code>strtok_r()</code> is a POSIX function and is a fast way of
+splitting a string without making any allocations. This can make it a
+good choice when performance matters, provided its behaviour matches
+your requirements.</p>
+<p>There are three important things to understand about
+<code>strtok_r()</code>:</p>
+<ol type="1">
+<li>It modifies the original string, replacing delimiters with
+<code>'\0'</code>.</li>
+<li>It treats the delimiter argument as a set of individual characters,
+rather than as a complete delimiter string. For example, with the input
+<code>"apple-orange,banana"</code> and delimiters <code>",-"</code>, it
+splits on either <code>-</code> or <code>,</code>.</li>
+<li>It ignores empty fields. For example, <code>"apple,,banana"</code>
+produces only <code>"apple"</code> and <code>"banana"</code>.</li>
+</ol>
+<p>The <code>"_r"</code> suffix means that the function is reentrant:
+the state required to continue tokenising is supplied by the caller
+through saveptr. This makes it preferable to <code>strtok()</code> when
+writing code that may be called concurrently or when multiple strings
+need to be tokenised at the same time.</p>
+<p><strong>Example Function:</strong></p>
+<p><a href="src/split-with-strtok.c">split-with-strtok.c</a></p>
+<pre><code>char *saveptr, *token, *str = argv[1], *delim = argv[2];
+while ((token = strtok_r(str, delim, &amp;saveptr))) {
+    printf(&quot;%s\n&quot;, token);
+    str = NULL;
+}</code></pre>
+<p><strong>Example Usage:</strong></p>
+<pre><code>./src/split-with-strtok &quot;apples,oranges;pears,grapes&quot; &quot;,;&quot;
+apples
+oranges
+pears
+grapes</code></pre>
+<h3 id="by-allocating-parts">By allocating parts</h3>
+<p>Sometimes we need something different. We may want to preserve empty
+fields, or we may want the resulting strings to have a lifetime
+independent of the original string.</p>
+<p>In this example, the delimiter is treated as a single, exact sequence
+of characters. Splitting therefore occurs only when the complete
+delimiter substring is found.</p>
+<p>Unlike <code>strtok_r()</code>, this implementation preserves empty
+fields.</p>
+<p><strong>Example Function:</strong></p>
+<p><a href="src/string-split.c">string-split.c</a></p>
+<pre><code>char **string_split(char *str, const char *delim)
+{
+    if (!str || !delim || !*delim) {
+        return NULL;
+    }
+
+    size_t argc = 1;
+    char *p = str;
+
+    while ((p = strstr(p, delim))) {
+        argc++;
+        p += strlen(delim);
+    }
+
+    char **argv = xcalloc(argc + 1, sizeof(*argv));
+
+    char **argvp = argv;
+    char *start = str;
+    size_t delim_len = strlen(delim);
+
+    while ((p = strstr(start, delim))) {
+        *argvp++ = strndup(start, p - start);
+        start = p + delim_len;
+    }
+
+    *argvp++ = xstrdup(start);
+    *argvp = NULL;
+
+    return argv;
+}</code></pre>
+<p><strong>Example Usage:</strong></p>
+<p><a href="src/split.c">split.c</a></p>
+<pre><code>./src/split &quot;apples,oranges,pears,grapes&quot; &quot;,&quot;
+apples
+oranges
+pears
+grapes</code></pre>
+<pre><code>./src/split &quot;1, 2, 3, 4, 5&quot; &quot;, &quot;
+1
+2
+3
+4
+5</code></pre>
+<p>The delimiter can also be a longer substring:</p>
+<pre><code>./src/split &quot;hello---world---my---name---is---john&quot; &quot;---&quot;
+hello
+world
+my
+name
+is
+john</code></pre>
+<h3 id="using-glib">Using GLib</h3>
+<p>If you are already linking with GLib, <code>g_strsplit()</code> and
+<code>g_strsplit_set()</code> provide convenient alternatives.
+<code>g_strsplit()</code> treats its delimiter as a complete string,
+while <code>g_strsplit_set()</code> treats it as a set of individual
+delimiter characters, much like <code>strtok_r()</code>.</p>
+<p><strong>Example Usage:</strong></p>
+<p><a href="src/split-with-glib.c">split-with-glib.c</a></p>
+<pre><code>char **tokens = g_strsplit_set(&quot;foo bar\tbaz&quot;, &quot; \t&quot;, -1);
+for (size_t i = 0; tokens[i]; ++i) {
+    printf(&quot;%s\n&quot;, tokens[i]);
+}
+g_strfreev(tokens);</code></pre>
+<pre><code>foo
+bar
+baz</code></pre>
 <h1 id="arrays">ARRAYS</h1>
 <h2 id="introduction">Introduction</h2>
 <p>C provides two fundamental aggregate types: arrays, which contain

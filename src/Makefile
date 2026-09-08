@@ -23,12 +23,17 @@ PROGS = \
 	cleanup-traditional \
 	cleanup-simple \
 	cleanup-better \
+	split \
+	split-with-glib \
+	split-with-strtok \
+	replace \
 	generate-readme
 
 HELPER = \
 	util.o \
 	list_sort.o \
 	parse-key-value-pair.o \
+	string-split.o \
 	string-helpers.o
 
 SRC  = $(wildcard *.c)

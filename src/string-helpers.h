@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 #ifndef STRING_HELPERS_H
 #define STRING_HELPERS_H
 

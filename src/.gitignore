@@ -11,6 +11,10 @@ list-reverse
 cleanup-traditional
 cleanup-simple
 cleanup-better
+split
+split-with-glib
+split-with-strtok
+replace
 
 truncate-spaces
 
